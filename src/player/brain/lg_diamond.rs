@@ -25,14 +25,14 @@ pub mod lg_diamond {
     use rand::Rng;
     //use std::char;
     use std::fs::File;
-    use fs_err::File as fs;
+    
 
 
     use crate::player::brain::brain::*;
     //use GameStatic;
     use std::io::Read;
     use std::io::Write;
-    use std::fmt::Error;
+    
     use boardgame_game::game::game::*;
     /// Layer representerer et lag med nevroner
     #[derive(Clone, Debug)]

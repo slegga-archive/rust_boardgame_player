@@ -481,10 +481,11 @@ pub mod plgnn_diamond_tree_search {
         }
 
         ///Place to set up logging and debug info
+        /*
         fn game_finished_event(&self) -> () {
             debug!("dump player  {:?}", self);
             // debug info
-        }
+        }*/
 
         fn dump_states(&self, states: &Vec<TSNode>) -> () {
             /*struct TSNode {

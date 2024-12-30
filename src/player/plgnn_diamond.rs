@@ -7,9 +7,7 @@ pub mod plgnn_diamond {
     use crate::player::brain::brain::*;
     use crate::player::brain::lg_diamond::lg_diamond::*;
     use Agentish;
-    use boardgame_game::game::game::*; //GameStatic;
-    //use boardgame_game::game::game::TerminalState;
-    //use boardgame_game::game::game::Playable;
+    use boardgame_game::game::game::*;
     use log::{debug,warn};
     use std::collections::HashMap;
 
