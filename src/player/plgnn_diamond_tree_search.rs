@@ -103,18 +103,18 @@ pub mod plgnn_diamond_tree_search {
                 must_rounds -= 1;
             }
 
-            let (cmove, cscore, score_level) = self.get_best_move_and_score(&states, &0);
+            let (cmove, cscore, score_level, _score_address) = self.get_best_move_and_score(&states, &0);
             if cmove == "".to_string() {
                 panic!("Did not find a move for root. {:#?}", states[0]);
             }
             self.dump_states(&states);
-            debug!(
+            info!(
                 "I({}) move {} with score: {} {:.1} level:{} % ",
                 self.name,
                 cmove,
                 cscore,
                 cscore as f32 * 100.0 / CELL_SIZE as f32,
-                score_level
+                score_level,
                 //    states[0]
             );
 
@@ -284,16 +284,19 @@ pub mod plgnn_diamond_tree_search {
                 if new_score.is_none() {
                     new_score = Some(tmp_score);
                     new_leaf_data.best_move = Some(mov.clone());
+                    new_leaf_data.score_address = adr;
                 } else {
                     if new_leaf_data.player == perspective {
                         if tmp_score > new_score.unwrap() {
                             new_score = Some(tmp_score);
                             new_leaf_data.best_move = Some(mov.clone());
+                            new_leaf_data.score_address = adr;
                         }
                     } else {
                         if tmp_score < new_score.unwrap() {
                             new_score = Some(tmp_score);
                             new_leaf_data.best_move = Some(mov.clone());
+                            new_leaf_data.score_address = adr;
                         }
                     }
                 }
@@ -303,7 +306,7 @@ pub mod plgnn_diamond_tree_search {
                 new_leaf_data.is_open = false;
                 new_leaf_data.score = new_score;
                 new_leaf_data.score_level = new_leaf_data.level + 1;
-                new_leaf_data.score_address = *leaf_no;
+                //new_leaf_data.score_address = *leaf_no;
                 // println!("{} {}", new_leaf_data.score, leaf_no);
                 states[*leaf_no] = new_leaf_data.clone();
             }
@@ -366,13 +369,15 @@ pub mod plgnn_diamond_tree_search {
                                 if states[adr].score < new_leaf_data.score {
                                     states[adr].score = new_leaf_data.score;
                                     states[adr].score_level = new_leaf_data.score_level;
+                                    states[adr].score_address = new_leaf_data.score_address;
 
                                 } else if states[adr].score > new_leaf_data.score {
-                                    let (best_move, best_score, best_score_level) =
+                                    let (best_move, best_score, best_score_level,score_address) =
                                         self.get_best_move_and_score(states, &adr);
                                     states[adr].best_move = Some(best_move);
                                     states[adr].score = best_score;
                                     states[adr].score_level = best_score_level;
+                                    states[adr].score_address = score_address;
                                 } else {
                                     // no changes. Continue
                                     break 'outer;
@@ -403,11 +408,12 @@ pub mod plgnn_diamond_tree_search {
                                     states[adr].score = new_leaf_data.score;
                                     states[adr].score_level = new_leaf_data.score_level;
                                 } else if states[adr].score < new_leaf_data.score {
-                                    let (best_move, best_score, best_score_level) =
+                                    let (best_move, best_score, best_score_level,score_address) =
                                         self.get_best_move_and_score(states, &adr);
                                     states[adr].best_move = Some(best_move);
                                     states[adr].score = best_score;
                                     states[adr].score_level = best_score_level;
+                                    states[adr].score_address = score_address;
                                 } else {
                                     // no changes. Continue
                                     break 'outer;
@@ -439,11 +445,12 @@ pub mod plgnn_diamond_tree_search {
         }
 
         /// loop moves and find best move. Look trough move alternatives
-        fn get_best_move_and_score(&self, states: &Vec<TSNode>, adr: &usize) -> (String, usize,u8) {
+        fn get_best_move_and_score(&self, states: &Vec<TSNode>, adr: &usize) -> (String, usize,u8,usize) {
             let parent = states[*adr].clone();
             let mut best_move: String = "".to_string();
             let mut best_score: usize = 0;
             let mut best_score_level = parent.level +1 ;
+            let mut score_address = 2000000;
             let moves = &parent.moves;
             assert!(
                 !moves.is_empty(),
@@ -459,17 +466,20 @@ pub mod plgnn_diamond_tree_search {
                     best_move = mov.clone();
                     best_score = child_score;
                     best_score_level = child_score_level;
+                    score_address = *adr_child;
                 } else if parent.player == states[0].player {
                     if child_score > best_score || best_score == 0 {
                         best_move = mov.clone();
                         best_score = child_score;
                         best_score_level = child_score_level;
+                        score_address = *adr_child;
                     }
                 } else {
                     if child_score < best_score || best_score == 0 {
                         best_move = mov.clone();
                         best_score = child_score;
                         best_score_level = child_score_level;
+                        score_address = *adr_child;
                     }
                 }
                 if *adr == 0usize && log::log_enabled!(Info) {
@@ -478,6 +488,7 @@ pub mod plgnn_diamond_tree_search {
                         &mov.clone(),
                         adr_child,
                         states[*adr_child].score
+
                     );
                 }
             }
@@ -488,7 +499,7 @@ pub mod plgnn_diamond_tree_search {
                 self.dump_states(states);
                 panic!("No best move for: {adr}\n{:#?}", states[*adr]);
             }
-            (best_move, best_score, best_score_level)
+            (best_move, best_score, best_score_level,score_address)
         }
 
         ///Place to set up logging and debug info
@@ -510,21 +521,22 @@ pub mod plgnn_diamond_tree_search {
                 score_level: u8
             }*/
             if log::log_enabled!(Info) {
-                println!("address, score, is_open,level, player, moves");
+                println!("address, score,score_level,score_address, is_open,level, player, moves");
                 let mut end = states.len();
                 if states.len() > 20 {
                     end = 10;
                 }
 
                 for i in 0..end {
-                    print!("{}", i);
-                    print!("  {}", states[i].score);
-                    print!("  {}", states[i].score_level);
-                    print!("  {}", states[i].is_open);
-                    print!("  {}", states[i].level);
-                    print!("  {}", states[i].player);
+                    print!("{:6}", i);
+                    print!("  {:6}", states[i].score);
+                    print!("  {:6}", states[i].score_level);
+                    print!("  {:6}", states[i].score_address);
+                    print!("  {:6}", states[i].is_open);
+                    print!("  {:6}", states[i].level);
+                    print!("  {:8}", states[i].player);
                     print!("  {:?}", states[i].best_move);
-                    println!("  {:?}", states[i].moves);
+                    println!("");//  {:?}", states[i].moves);
                 }
             }
         }
