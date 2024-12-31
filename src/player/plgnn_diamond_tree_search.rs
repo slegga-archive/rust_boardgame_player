@@ -25,6 +25,7 @@ pub mod plgnn_diamond_tree_search {
         level: u8,
         player: String,
         score_level: u8,
+        score_address: usize,
     }
 
     #[derive(Debug)]
@@ -78,6 +79,7 @@ pub mod plgnn_diamond_tree_search {
                 level: 0,
                 player: player.to_string(),
                 score_level: 0,
+                score_address: 0,
             });
             let move_start = Instant::now();
 
@@ -186,46 +188,52 @@ pub mod plgnn_diamond_tree_search {
             let mut best_candidate: Option<TSNode> = None;
             let mut is_complete = true;
             let exploration = 16.0; // low = bredde først, high = dubde først
-            for cand in states {
-                if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
-                    is_complete = false;
-                    if best_candidate.is_none() {
-                        best_address = address.clone();
-                        best_candidate = Some(cand.clone());
-                        best_value = match cand.player == self.opponent_color {
-                            // the move choosing player is me
-                            true => {
-                                cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                            }
-                            // the move choosing player is opponent
-                            false => {
-                                (CELL_SIZE - cand.score) as f64
-                                    - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+
+            if states[0].score_level < 9 && states[states[0].score_address].is_open == true  {
+                return (states[0].score_address, Some(states[states[0].score_address].clone()), false);
+            }
+            else {
+                for cand in states {
+                    if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
+                        is_complete = false;
+                        if best_candidate.is_none() {
+                            best_address = address.clone();
+                            best_candidate = Some(cand.clone());
+                            best_value = match cand.player == self.opponent_color {
+                                // the move choosing player is me
+                                true => {
+                                    cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                                }
+                                // the move choosing player is opponent
+                                false => {
+                                    (CELL_SIZE - cand.score) as f64
+                                        - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                                }
                             }
                         }
+                        if cand.player == self.opponent_color // the move choosing player is me
+                            && best_value
+                                < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                        {
+                            // turn is me
+                            best_address = address.clone();
+                            best_candidate = Some(cand.clone());
+                            best_value =
+                                cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
+                        } else if cand.player == self.me_color // the move choosing player is opponent
+                            && best_value
+                                < (CELL_SIZE - cand.score) as f64
+                                    - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                        {
+                            // turn is opoentent
+                            best_address = address.clone();
+                            best_candidate = Some(cand.clone());
+                            best_value = (CELL_SIZE - cand.score) as f64
+                                - (cand.level as f64 * CELL_SIZE as f64 / exploration);
+                        }
                     }
-                    if cand.player == self.opponent_color // the move choosing player is me
-                        && best_value
-                            < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                    {
-                        // turn is me
-                        best_address = address.clone();
-                        best_candidate = Some(cand.clone());
-                        best_value =
-                            cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
-                    } else if cand.player == self.me_color // the move choosing player is opponent
-                        && best_value
-                            < (CELL_SIZE - cand.score) as f64
-                                - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                    {
-                        // turn is opoentent
-                        best_address = address.clone();
-                        best_candidate = Some(cand.clone());
-                        best_value = (CELL_SIZE - cand.score) as f64
-                            - (cand.level as f64 * CELL_SIZE as f64 / exploration);
-                    }
+                    address += 1;
                 }
-                address += 1;
             }
             if is_complete {
                 debug!("Is complete. Number of states {}", states.len());
@@ -294,6 +302,8 @@ pub mod plgnn_diamond_tree_search {
                 new_leaf_data.moves = move_alternatives;
                 new_leaf_data.is_open = false;
                 new_leaf_data.score = new_score;
+                new_leaf_data.score_level = new_leaf_data.level + 1;
+                new_leaf_data.score_address = *leaf_no;
                 // println!("{} {}", new_leaf_data.score, leaf_no);
                 states[*leaf_no] = new_leaf_data.clone();
             }
@@ -323,6 +333,7 @@ pub mod plgnn_diamond_tree_search {
                 level: leaf_data.level + 1,
                 player: new_player,
                 score_level: leaf_data.level + 1,
+                score_address: 1000000
             });
             return states.len() - 1;
         }
