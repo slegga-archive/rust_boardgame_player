@@ -9,12 +9,13 @@ pub mod human {
     use std::io::BufRead;
     use std::io::Write;
     use boardgame_game::game::game::*;
+    use crate::player::player::*;
 
     #[derive(Clone, Default)]
     pub struct PlayerHuman {
         pub name: String,
     }
-    impl crate::player::Agentish for PlayerHuman {
+    impl Agentish for PlayerHuman {
         fn get_name(&self) -> String {
             self.name.to_string()
         }
@@ -45,6 +46,14 @@ pub mod human {
             }
 
             // return hmove;
+        }
+
+        fn get_ready(
+                    &mut self,
+                    _game_static: &GameStatic,
+                    _me_color: &str,
+                ) -> Result<(), crate::player::brain::brain::LogicGatesError> {
+            Ok(())
         }
     }
     impl Debug for PlayerHuman {

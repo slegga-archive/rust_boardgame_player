@@ -87,10 +87,10 @@ pub mod plgnn_trunc {
             debug!("I({}) move {} ", self.name, cmove);
             return Some(cmove.to_string());
         }
-    }
 
-    impl PlayerNeuralNetwork {
-        fn get_ready(&mut self, game_static: &GameStatic) -> Result<(), LogicGatesError> {
+        fn get_ready(&mut self, game_static: &GameStatic, my_color: &str) -> Result<(), LogicGatesError> {
+
+            // TODO: Implementer bruk av my_color.
             if !self.is_loaded {
                 let layer = get_default_cell();
                 let mut brain = Brain {
@@ -118,20 +118,6 @@ pub mod plgnn_trunc {
             }
             Ok(())
         }
-
-        pub fn new(game_static: &GameStatic) -> Self {
-            let mut myself = Self {
-                name: "Logic gates".to_string(),
-                is_loaded: false,
-                brain: Brain {
-                    game_name: game_static.name.clone(),
-                    filepath: "".to_string(),
-                    layers: [get_default_cell(); NO_LAYERS],
-                },
-            };
-
-            let _ = myself.get_ready(game_static);
-            myself
-        }
     }
+
 }

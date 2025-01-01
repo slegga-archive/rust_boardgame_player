@@ -3,6 +3,8 @@ pub mod random {
     use log::debug;
     use rand::Rng;
     use boardgame_game::game::game::Playable;
+    use crate::player::brain::brain::*;
+
 
     #[derive(Clone, Default)]
     pub struct PlayerRandom {
@@ -14,14 +16,7 @@ pub mod random {
         fn get_name(&self) -> String {
             self.name.to_string()
         }
-        /*
-                fn get_name_in_game(&self) -> String {
-                    match self.name_in_game.as_str() {
-                        "" => panic!("No name set!"),
-                        x => x.to_string(),
-                    }
-                }
-        */
+
         fn get_move<T: Playable>(
             &self,
             moves: &Vec<String>,
@@ -32,6 +27,10 @@ pub mod random {
             let cmove = &moves[rng.gen_range(0..moves.len())];
             debug!("I({}) move {}", self.name, cmove);
             return Some(cmove.clone());
+        }
+        fn get_ready(&mut self, _game_static: &boardgame_game::game::game::GameStatic, _my_color: &str) -> Result<(), LogicGatesError> {
+            // Trender ikke å gjøre mer
+            Ok(())
         }
     }
 }

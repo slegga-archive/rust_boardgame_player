@@ -8,12 +8,12 @@ pub mod plgnn_diamond_tree_search {
     use boardgame_game::game::game::*;
     use crate::player::Agentish;
 
-    use log::{debug, info, warn};
+    use log::{debug, info, warn,trace};
     //use rand::Rng;
     use std::collections::HashMap;
     use std::fmt::Debug;
     use std::time::{Duration, Instant};
-    use log::Level::Info;
+    use log::Level::{Info,Trace};
 
     #[derive(Clone, Debug)]
     struct TSNode {
@@ -52,6 +52,9 @@ pub mod plgnn_diamond_tree_search {
                 me_color: "".to_string(),
                 opponent_color: "".to_string(),
             }
+//            let _ = myself.get_ready(game_static, player_color);
+//            myself
+
         }
     }
 
@@ -120,9 +123,7 @@ pub mod plgnn_diamond_tree_search {
 
             return Some(cmove.to_string());
         }
-    }
 
-    impl PlayerNNDiamondTS {
         fn get_ready(
             &mut self,
             game_static: &GameStatic,
@@ -160,22 +161,9 @@ pub mod plgnn_diamond_tree_search {
             Ok(())
         }
 
-        pub fn new(game_static: &GameStatic, player_color: &str) -> Self {
-            let mut brain = BrainDiamond::default();
-            brain.game_name = game_static.name.clone();
-            let mut myself = Self {
-                name: "Logic gates".to_string(),
-                is_loaded: false,
-                brain: brain,
-                sec_to_move: 15,
-                me_color: "".to_string(),
-                opponent_color: "".to_string(),
-            };
+    }
 
-            let _ = myself.get_ready(game_static, player_color);
-            myself
-        }
-
+    impl PlayerNNDiamondTS {
         fn has_time_left(&self, move_start: &Instant) -> bool {
             return Duration::from_secs(self.sec_to_move) >= move_start.elapsed();
         }
@@ -189,8 +177,29 @@ pub mod plgnn_diamond_tree_search {
             let mut is_complete = true;
             let exploration = 16.0; // low = bredde først, high = dubde først
 
-            if states[0].score_level < 9 && states[states[0].score_address].is_open == true  {
-                return (states[0].score_address, Some(states[states[0].score_address].clone()), false);
+            if states[0].score_level < 9   {
+                let mut address = states[states[0].score_address].score_address;
+                if states[address].is_open == false {
+                    if log::log_enabled!(Trace) {
+                        self.dump_state( &states[address] );
+                        self.dump_states(&states);
+
+                        trace!("leaf is not open adr:{} first_adr:{} ", address, states[0].score_address);
+                    }
+                    loop {
+                        address = states[address].score_address;
+                        if states[address].is_open == true {
+                            break;
+                        }
+                        if address == states[address].score_address {
+                            trace!("Pointer to self {}", address);
+                            break;
+                        }
+
+                    }
+
+                }
+                return (states[states[0].score_address].score_address, Some(states[states[states[0].score_address].score_address].clone()), false);
             }
             else {
                 for cand in states {
@@ -280,6 +289,7 @@ pub mod plgnn_diamond_tree_search {
 
                 let adr = self.add_leaf(states, &tmp_score, &tmp_state, &leaf_data, is_open);
                 //panic!("{}", xmove.as_str());
+                states[adr].score_address = adr; // after register address.
                 move_alternatives.entry(xmove).or_insert(adr);
                 if new_score.is_none() {
                     new_score = Some(tmp_score);
@@ -306,9 +316,17 @@ pub mod plgnn_diamond_tree_search {
                 new_leaf_data.is_open = false;
                 new_leaf_data.score = new_score;
                 new_leaf_data.score_level = new_leaf_data.level + 1;
-                //new_leaf_data.score_address = *leaf_no;
-                // println!("{} {}", new_leaf_data.score, leaf_no);
                 states[*leaf_no] = new_leaf_data.clone();
+                debug!(
+                    "backpr from explore  {:4}->{:4}:{:3} ::{}",
+                    new_leaf_data.score_address,leaf_no,  new_leaf_data.score,new_leaf_data.score_address
+                );
+                self.backpropagate(
+                    states,
+                    perspective, //states[adr].player.clone().as_str(),
+                    &new_leaf_data.score_address,
+                    &new_leaf_data.clone(),
+                );
             }
             return new_leaf_data;
         }
@@ -361,6 +379,9 @@ pub mod plgnn_diamond_tree_search {
 
                 for mov in states[adr].moves.clone().into_keys() {
                     if states[adr].moves.get(&mov).unwrap() == leaf_no {
+                        if adr == 0 {
+                            debug!("I want to debug");
+                        }
                         // Check if score is up or down.
                         //  } else {
                         if states[adr].player == player {
@@ -382,10 +403,10 @@ pub mod plgnn_diamond_tree_search {
                                     // no changes. Continue
                                     break 'outer;
                                 }
-                                if adr != 0 {
+                                //if adr != 0 {
                                     debug!(
-                                        "backpr from we  {:4}->{:4}:{:3}",
-                                        leaf_no, adr, new_leaf_data.score
+                                        "backpr from we  {:4}->{:4}:{:3} ::{}",
+                                        leaf_no, adr, new_leaf_data.score,new_leaf_data.score_address
                                     );
 
                                     self.backpropagate(
@@ -394,7 +415,7 @@ pub mod plgnn_diamond_tree_search {
                                         &adr,
                                         &states[adr].clone(),
                                     );
-                                }
+                                //}
                             } else if states[adr].score < new_leaf_data.score {
                                 states[adr].score = new_leaf_data.score;
                                 states[adr].score_level = new_leaf_data.score_level;
@@ -407,6 +428,7 @@ pub mod plgnn_diamond_tree_search {
                                 if states[adr].score > new_leaf_data.score {
                                     states[adr].score = new_leaf_data.score;
                                     states[adr].score_level = new_leaf_data.score_level;
+                                    states[adr].score_address = new_leaf_data.score_address;
                                 } else if states[adr].score < new_leaf_data.score {
                                     let (best_move, best_score, best_score_level,score_address) =
                                         self.get_best_move_and_score(states, &adr);
@@ -418,10 +440,10 @@ pub mod plgnn_diamond_tree_search {
                                     // no changes. Continue
                                     break 'outer;
                                 }
-                                if adr != 0 {
+                               // if adr != 0 {
                                     debug!(
-                                        "backpr opponent {:4}->{:4}:{:3}",
-                                        leaf_no, adr, new_leaf_data.score
+                                        "backpr opponent {:4}->{:4}:{:3} ::{}",
+                                        leaf_no, adr, new_leaf_data.score,new_leaf_data.score_address
                                     );
 
                                     self.backpropagate(
@@ -430,7 +452,7 @@ pub mod plgnn_diamond_tree_search {
                                         &adr,
                                         &states[adr].clone(),
                                     );
-                                }
+                                //}
                             } else if states[adr].score > new_leaf_data.score {
                                 states[adr].score = new_leaf_data.score;
                                 states[adr].best_move = Some(mov.clone());
@@ -508,6 +530,22 @@ pub mod plgnn_diamond_tree_search {
             debug!("dump player  {:?}", self);
             // debug info
         }*/
+        fn dump_state(&self, state: &TSNode) -> () {
+            if log::log_enabled!(Info) {
+                println!("score,score_level,score_address, is_open,level, player, best_move");
+
+                //print!("{:6}", i);
+                print!("{:5}", state.score);
+                print!(" {:11}", state.score_level);
+                print!(" {:13}", state.score_address);
+                print!(" {:8}", state.is_open);
+                print!(" {:5}", state.level);
+                print!(" {:8}", state.player);
+                print!(" {:?}", state.best_move);
+                println!("");//  {:?}", states[i].moves);
+            }
+
+        }
 
         fn dump_states(&self, states: &Vec<TSNode>) -> () {
             /*struct TSNode {
@@ -521,21 +559,21 @@ pub mod plgnn_diamond_tree_search {
                 score_level: u8
             }*/
             if log::log_enabled!(Info) {
-                println!("address, score,score_level,score_address, is_open,level, player, moves");
+                println!("address,score,score_level,score_address, is_open,level, player, moves");
                 let mut end = states.len();
                 if states.len() > 20 {
                     end = 10;
                 }
 
                 for i in 0..end {
-                    print!("{:6}", i);
-                    print!("  {:6}", states[i].score);
-                    print!("  {:6}", states[i].score_level);
-                    print!("  {:6}", states[i].score_address);
-                    print!("  {:6}", states[i].is_open);
-                    print!("  {:6}", states[i].level);
-                    print!("  {:8}", states[i].player);
-                    print!("  {:?}", states[i].best_move);
+                    print!("{:7}", i);
+                    print!(" {:5}", states[i].score);
+                    print!(" {:11}", states[i].score_level);
+                    print!(" {:13}", states[i].score_address);
+                    print!(" {:7}", states[i].is_open);
+                    print!(" {:5}", states[i].level);
+                    print!(" {:6}", states[i].player);
+                    print!(" {:?}", states[i].best_move);
                     println!("");//  {:?}", states[i].moves);
                 }
             }

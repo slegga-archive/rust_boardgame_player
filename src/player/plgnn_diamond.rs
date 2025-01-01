@@ -16,6 +16,8 @@ pub mod plgnn_diamond {
         pub name: String,
         pub is_loaded: bool,
         pub brain: BrainDiamond,
+        me_color: String,
+        opponent_color: String,
     }
 
     impl Default for PlayerNNDiamond {
@@ -27,6 +29,8 @@ pub mod plgnn_diamond {
                 name: "LG Diamond".to_string(),
                 is_loaded: false,
                 brain: BrainDiamond::default(),
+                me_color: "".to_string(),
+                opponent_color: "".to_string(),
             }
         }
     }
@@ -80,11 +84,11 @@ pub mod plgnn_diamond {
             debug!("I({}) move {} ", self.name, cmove);
             return Some(cmove.to_string());
         }
-    }
 
-    impl PlayerNNDiamond {
+        fn get_ready(&mut self, game_static: &GameStatic,me_color: &str) -> Result<(), LogicGatesError> {
+            // TODO: todo!("Ta hensyn til color");
 
-        fn get_ready(&mut self, game_static: &GameStatic) -> Result<(), LogicGatesError> {
+
             if !self.is_loaded {
                 let mut brain = BrainDiamond::default();
                 brain.game_name = game_static.name.clone();
@@ -106,20 +110,16 @@ pub mod plgnn_diamond {
                 // warn!("BrainDiamond is {:?}", brain);
                 self.brain = brain;
             }
+
+            //set color
+            self.me_color = me_color.to_string();
+            for x in game_static.players.iter() {
+                let x_value = x.to_string();
+                if x_value != self.me_color {
+                    self.opponent_color = x_value;
+                }
+            }
             Ok(())
-        }
-
-        pub fn new(game_static: &GameStatic) -> Self {
-            let mut brain = BrainDiamond::default();
-            brain.game_name = game_static.name.clone();
-            let mut myself = Self {
-                name: "Logic gates".to_string(),
-                is_loaded: false,
-                brain: brain,
-            };
-
-            let _ = myself.get_ready(game_static);
-            myself
         }
     }
 }

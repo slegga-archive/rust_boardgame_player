@@ -1,5 +1,5 @@
 pub mod lg_diamond;
-pub mod lg_trunc;
+//pub mod lg_other_brain;
 
 pub mod brain {
     pub const NO_LAYERS: usize = 6; //1++
