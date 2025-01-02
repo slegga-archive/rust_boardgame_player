@@ -27,6 +27,8 @@ Ved tilfeldig generering er et lag nok. Er bare siste laget som må optimalisere
 
 Mer utfordrende å lage en god AI på mer kompliserte spill som "4 på rad". Med tree search blir det ikke helt håpløst, men ingen utfordring å vinne, hvis man følger litt med.
 
+Plain ved plain tree search spiller AI dårlig i starten og bedre når det er få trekk igjen.
+
 TRENINGSTRATEGI: VEILEDER FOR DIAMOND
 =====================================
 Det bør fungere å få til bedre planlegging ved å bruke eksisterende LGNN_DIAMOND_TREE_SEARCH

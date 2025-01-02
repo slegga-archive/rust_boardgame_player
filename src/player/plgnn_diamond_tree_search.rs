@@ -176,7 +176,7 @@ pub mod plgnn_diamond_tree_search {
             let mut best_candidate: Option<TSNode> = None;
             let mut is_complete = true;
             let exploration = 16.0; // low = bredde først, high = dubde først
-
+            let mut do_continue = false;
             if states[0].score_level < 9   {
                 let mut address = states[states[0].score_address].score_address;
                 if states[address].is_open == false {
@@ -193,57 +193,62 @@ pub mod plgnn_diamond_tree_search {
                         }
                         if address == states[address].score_address {
                             trace!("Pointer to self {}", address);
+                            do_continue = true;
                             break;
                         }
 
                     }
 
                 }
-                return (states[states[0].score_address].score_address, Some(states[states[states[0].score_address].score_address].clone()), false);
+                if ! do_continue {
+                    return (states[address].score_address, Some(states[states[address].score_address].clone()), false);
+                }
+
             }
-            else {
-                for cand in states {
-                    if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
-                        is_complete = false;
-                        if best_candidate.is_none() {
-                            best_address = address.clone();
-                            best_candidate = Some(cand.clone());
-                            best_value = match cand.player == self.opponent_color {
-                                // the move choosing player is me
-                                true => {
-                                    cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                                }
-                                // the move choosing player is opponent
-                                false => {
-                                    (CELL_SIZE - cand.score) as f64
-                                        - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                                }
+
+            // Else contiue find the best candidate among all the states
+            for cand in states {
+                if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
+                    is_complete = false;
+                    if best_candidate.is_none() {
+                        best_address = address.clone();
+                        best_candidate = Some(cand.clone());
+                        best_value = match cand.player == self.opponent_color {
+                            // the move choosing player is me
+                            true => {
+                                cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                            }
+                            // the move choosing player is opponent
+                            false => {
+                                (CELL_SIZE - cand.score) as f64
+                                    - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                             }
                         }
-                        if cand.player == self.opponent_color // the move choosing player is me
-                            && best_value
-                                < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                        {
-                            // turn is me
-                            best_address = address.clone();
-                            best_candidate = Some(cand.clone());
-                            best_value =
-                                cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
-                        } else if cand.player == self.me_color // the move choosing player is opponent
-                            && best_value
-                                < (CELL_SIZE - cand.score) as f64
-                                    - (cand.level as f64 * CELL_SIZE as f64 / exploration)
-                        {
-                            // turn is opoentent
-                            best_address = address.clone();
-                            best_candidate = Some(cand.clone());
-                            best_value = (CELL_SIZE - cand.score) as f64
-                                - (cand.level as f64 * CELL_SIZE as f64 / exploration);
-                        }
                     }
-                    address += 1;
+                    if cand.player == self.opponent_color // the move choosing player is me
+                        && best_value
+                            < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                    {
+                        // turn is me
+                        best_address = address.clone();
+                        best_candidate = Some(cand.clone());
+                        best_value =
+                            cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
+                    } else if cand.player == self.me_color // the move choosing player is opponent
+                        && best_value
+                            < (CELL_SIZE - cand.score) as f64
+                                - (cand.level as f64 * CELL_SIZE as f64 / exploration)
+                    {
+                        // turn is opoentent
+                        best_address = address.clone();
+                        best_candidate = Some(cand.clone());
+                        best_value = (CELL_SIZE - cand.score) as f64
+                            - (cand.level as f64 * CELL_SIZE as f64 / exploration);
+                    }
                 }
+                address += 1;
             }
+
             if is_complete {
                 debug!("Is complete. Number of states {}", states.len());
                 self.dump_states(states);
@@ -263,6 +268,13 @@ pub mod plgnn_diamond_tree_search {
             leaf_data: &TSNode,
             game: &T,
         ) -> TSNode {
+            if ! leaf_data.is_open {
+                println!("Error with state address: {}", leaf_no);
+                self.dump_state(leaf_data);
+
+
+                panic!("Try to explore closed leaf");
+            }
             let mut new_leaf_data = leaf_data.clone();
             let mut new_score: Option<usize> = None;
             let valid_moves: Vec<String> =
