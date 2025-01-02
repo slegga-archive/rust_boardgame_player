@@ -85,8 +85,8 @@ pub mod plgnn_diamond {
             return Some(cmove.to_string());
         }
 
-        fn get_ready(&mut self, game_static: &GameStatic,me_color: &str) -> Result<(), LogicGatesError> {
-            // TODO: todo!("Ta hensyn til color");
+        fn get_ready(&mut self, game_static: &GameStatic,_me_color: &str) -> Result<(), LogicGatesError> {
+            // _me_color is ignored. Expect always to only think one move a head.
 
 
             if !self.is_loaded {
@@ -110,16 +110,7 @@ pub mod plgnn_diamond {
                 // warn!("BrainDiamond is {:?}", brain);
                 self.brain = brain;
             }
-
-            //set color
-            self.me_color = me_color.to_string();
-            for x in game_static.players.iter() {
-                let x_value = x.to_string();
-                if x_value != self.me_color {
-                    self.opponent_color = x_value;
-                }
-            }
-            Ok(())
+             Ok(())
         }
     }
 }
