@@ -8,7 +8,7 @@ pub mod human {
     use std::io::stdout;
     use std::io::BufRead;
     use std::io::Write;
-    use boardgame_game::game::game::*;
+    use boardgame_game::game::*;
     use crate::player::player::*;
 
     #[derive(Clone, Default)]

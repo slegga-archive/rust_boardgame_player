@@ -12,11 +12,11 @@ pub mod player {
     //use crate::{GameStatic, Playable};
     use std::fmt::Display;
     //use boardgame_game::game::GameStatic;
-    use boardgame_game::game::game::GameStatic;
+    use boardgame_game::game::GameStatic;
     use crate::player::brain::brain::LogicGatesError;
 
     pub trait Agentish {
-        fn get_move<T: boardgame_game::game::game::Playable + Display>(
+        fn get_move<T: boardgame_game::game::Playable + Display>(
             &self,
             moves: &Vec<String>,
             game_player: &str,

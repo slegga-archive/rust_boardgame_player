@@ -2,8 +2,9 @@ pub mod random {
 
     use log::debug;
     use rand::Rng;
-    use boardgame_game::game::game::Playable;
+    use boardgame_game::game::Playable;
     use crate::player::brain::brain::*;
+    use boardgame_game::game;
 
 
     #[derive(Clone, Default)]
@@ -28,7 +29,7 @@ pub mod random {
             debug!("I({}) move {}", self.name, cmove);
             return Some(cmove.clone());
         }
-        fn get_ready(&mut self, _game_static: &boardgame_game::game::game::GameStatic, _my_color: &str) -> Result<(), LogicGatesError> {
+        fn get_ready(&mut self, _game_static: &game::GameStatic, _my_color: &str) -> Result<(), LogicGatesError> {
             // Trender ikke å gjøre mer
             Ok(())
         }

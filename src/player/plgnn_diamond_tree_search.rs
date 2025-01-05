@@ -5,7 +5,7 @@ pub mod plgnn_diamond_tree_search {
 
     use crate::player::brain::brain::*;
     use crate::player::brain::lg_diamond::lg_diamond::*;
-    use boardgame_game::game::game::*;
+    use boardgame_game::game::*;
     use crate::player::Agentish;
 
     use log::{debug, info, warn,trace};
@@ -175,39 +175,29 @@ pub mod plgnn_diamond_tree_search {
             let mut best_address = 100000000;
             let mut best_candidate: Option<TSNode> = None;
             let mut is_complete = true;
-            let exploration = 16.0; // low = bredde først, high = dubde først
-            let mut do_continue = false;
-            if states[0].score_level < 9   {
-                let mut address = states[states[0].score_address].score_address;
-                if states[address].is_open == false {
-                    if log::log_enabled!(Trace) {
-                        self.dump_state( &states[address] );
-                        self.dump_states(&states);
+            let exploration = 1.0; // low = bredde først, high = dubde først
+            // let mut do_continue = false;
 
-                        trace!("leaf is not open adr:{} first_adr:{} ", address, states[0].score_address);
-                    }
-                    loop {
-                        address = states[address].score_address;
-                        if states[address].is_open == true {
-                            break;
-                        }
-                        if address == states[address].score_address {
-                            trace!("Pointer to self {}", address);
-                            do_continue = true;
-                            break;
-                        }
+            // Først undersøker om best_move er åpen
+            // Den kan være lukket når videre utforskning av best_move gir samme vurdering som før.
+            // Da vil denne logikken gå videre å finne en mer tilfeldig state å explore.
+            let address = states[states[0].score_address].score_address;
+            if states[address].is_open == false {
+                if log::log_enabled!(Trace) {
+                    self.dump_state( &states[address] );
+                    self.dump_states(&states);
 
-                    }
-
+                    trace!("leaf is not open adr:{} first_adr:{} ", address, states[0].score_address);
                 }
-                if ! do_continue {
-                    return (states[address].score_address, Some(states[states[address].score_address].clone()), false);
-                }
-
+            }
+            else if address != states[address].score_address { //else for: if is_open == false
+                return (states[address].score_address, Some(states[states[address].score_address].clone()), false);
             }
 
+
             // Else contiue find the best candidate among all the states
-            for cand in states {
+            for (address, cand) in states.iter().enumerate() {
+            //for cand in states {
                 if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
                     is_complete = false;
                     if best_candidate.is_none() {
@@ -246,7 +236,7 @@ pub mod plgnn_diamond_tree_search {
                             - (cand.level as f64 * CELL_SIZE as f64 / exploration);
                     }
                 }
-                address += 1;
+                //address += 1;
             }
 
             if is_complete {
@@ -330,8 +320,8 @@ pub mod plgnn_diamond_tree_search {
                 new_leaf_data.score_level = new_leaf_data.level + 1;
                 states[*leaf_no] = new_leaf_data.clone();
                 debug!(
-                    "backpr from explore  {:4}->{:4}:{:3} ::{}",
-                    new_leaf_data.score_address,leaf_no,  new_leaf_data.score,new_leaf_data.score_address
+                    "backpr from explore l:{} {:4}->{:4}:{:3} ::{}",
+                    new_leaf_data.level,new_leaf_data.score_address,leaf_no,  new_leaf_data.score,new_leaf_data.score_address
                 );
                 self.backpropagate(
                     states,
@@ -411,14 +401,16 @@ pub mod plgnn_diamond_tree_search {
                                     states[adr].score = best_score;
                                     states[adr].score_level = best_score_level;
                                     states[adr].score_address = score_address;
+                                } else if states[adr].score == new_leaf_data.score {
+                                    // nothing
                                 } else {
                                     // no changes. Continue
                                     break 'outer;
                                 }
                                 //if adr != 0 {
                                     debug!(
-                                        "backpr from we  {:4}->{:4}:{:3} ::{}",
-                                        leaf_no, adr, new_leaf_data.score,new_leaf_data.score_address
+                                        "backpr from we  l:{} {:4}->{:4}:{:3} ::{}",
+                                        new_leaf_data.level,leaf_no, adr, new_leaf_data.score,new_leaf_data.score_address
                                     );
 
                                     self.backpropagate(
@@ -428,11 +420,13 @@ pub mod plgnn_diamond_tree_search {
                                         &states[adr].clone(),
                                     );
                                 //}
-                            } else if states[adr].score < new_leaf_data.score {
+                            }
+                             /* Aner ikke hva koden under gjør.
+                             else if states[adr].score < new_leaf_data.score {
                                 states[adr].score = new_leaf_data.score;
                                 states[adr].score_level = new_leaf_data.score_level;
                                 states[adr].best_move = Some(mov.clone());
-                            }
+                            }*/
                         } else {
                             // opponent
                             // wish lowest score
@@ -454,8 +448,8 @@ pub mod plgnn_diamond_tree_search {
                                 }
                                // if adr != 0 {
                                     debug!(
-                                        "backpr opponent {:4}->{:4}:{:3} ::{}",
-                                        leaf_no, adr, new_leaf_data.score,new_leaf_data.score_address
+                                        "backpr opponent l:{} {:4}->{:4}:{:3} ::{}",
+                                        new_leaf_data.level,leaf_no, adr, new_leaf_data.score,new_leaf_data.score_address
                                     );
 
                                     self.backpropagate(
@@ -465,11 +459,12 @@ pub mod plgnn_diamond_tree_search {
                                         &states[adr].clone(),
                                     );
                                 //}
-                            } else if states[adr].score > new_leaf_data.score {
+                            }
+                            /*else if states[adr].score > new_leaf_data.score {
                                 states[adr].score = new_leaf_data.score;
                                 states[adr].best_move = Some(mov.clone());
                                 break 'outer;
-                            }
+                            }*/
                         }
                         break 'outer;
                     }

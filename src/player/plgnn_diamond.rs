@@ -7,7 +7,7 @@ pub mod plgnn_diamond {
     use crate::player::brain::brain::*;
     use crate::player::brain::lg_diamond::lg_diamond::*;
     use Agentish;
-    use boardgame_game::game::game::*;
+    use boardgame_game::game::*;
     use log::{debug,warn};
     use std::collections::HashMap;
 
@@ -16,8 +16,6 @@ pub mod plgnn_diamond {
         pub name: String,
         pub is_loaded: bool,
         pub brain: BrainDiamond,
-        me_color: String,
-        opponent_color: String,
     }
 
     impl Default for PlayerNNDiamond {
@@ -29,8 +27,6 @@ pub mod plgnn_diamond {
                 name: "LG Diamond".to_string(),
                 is_loaded: false,
                 brain: BrainDiamond::default(),
-                me_color: "".to_string(),
-                opponent_color: "".to_string(),
             }
         }
     }
