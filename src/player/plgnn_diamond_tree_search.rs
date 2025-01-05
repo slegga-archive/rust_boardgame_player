@@ -175,7 +175,7 @@ pub mod plgnn_diamond_tree_search {
             let mut best_address = 100000000;
             let mut best_candidate: Option<TSNode> = None;
             let mut is_complete = true;
-            let exploration = 1.0; // low = bredde først, high = dubde først
+            let exploration = 2.0; // low = bredde først, high = dubde først: 1.0= slå meg, 256 lett å slå
             // let mut do_continue = false;
 
             // Først undersøker om best_move er åpen
