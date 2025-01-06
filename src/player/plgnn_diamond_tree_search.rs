@@ -548,7 +548,7 @@ impl PlayerNNDiamondTS {
         debug!("dump player  {:?}", self);
         // debug info
     }*/
-    fn dump_state(&self, state: &TSNode) -> () {
+    fn dump_state(&self, state: &TSNode) {
         if log::log_enabled!(Info) {
             println!("score,score_level,score_address, is_open,level, player, best_move");
 
@@ -564,7 +564,7 @@ impl PlayerNNDiamondTS {
         }
     }
 
-    fn dump_states(&self, states: &Vec<TSNode>) -> () {
+    fn dump_states(&self, states: &Vec<TSNode>) {
         /*struct TSNode {
             moves: HashMap<String, usize>,
             score: usize,
@@ -596,7 +596,7 @@ impl PlayerNNDiamondTS {
         }
     }
 
-    pub fn transform_to_mocked_version(&mut self) -> () {
+    pub fn transform_to_mocked_version(&mut self) {
         // find last layer
         // sett it to be CELL_SIZE/2 +1
         for gate in 0..=(CELL_SIZE / 2) {
