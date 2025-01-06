@@ -504,18 +504,20 @@ impl PlayerNNDiamondTS {
                 best_score = child_score;
                 best_score_level = child_score_level;
                 score_address = *adr_child;
-            } else if parent.player == states[0].player
-                && (child_score > best_score || best_score == 0)
-            {
-                best_move = mov.clone();
-                best_score = child_score;
-                best_score_level = child_score_level;
-                score_address = *adr_child;
-            } else if child_score < best_score || best_score == 0 {
-                best_move = mov.clone();
-                best_score = child_score;
-                best_score_level = child_score_level;
-                score_address = *adr_child;
+            } else if parent.player == states[0].player {
+                if (child_score > best_score || best_score == 0) {
+                    best_move = mov.clone();
+                    best_score = child_score;
+                    best_score_level = child_score_level;
+                    score_address = *adr_child;
+                }
+            } else {
+                if child_score < best_score || best_score == 0 {
+                    best_move = mov.clone();
+                    best_score = child_score;
+                    best_score_level = child_score_level;
+                    score_address = *adr_child;
+                }
             }
             if *adr == 0usize && log::log_enabled!(Info) {
                 print!(
