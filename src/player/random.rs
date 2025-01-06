@@ -17,7 +17,7 @@ impl crate::player::Agentish for PlayerRandom {
 
     fn get_move<T: Playable>(
         &self,
-        moves: &Vec<String>,
+        moves: &[String],
         _active_player: &str,
         _game: &T,
     ) -> Option<String> {

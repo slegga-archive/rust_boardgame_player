@@ -13,7 +13,7 @@ use std::fmt::Display;
 pub trait Agentish {
     fn get_move<T: Playable + Display>(
         &self,
-        moves: &Vec<String>,
+        moves: &[String],
         game_player: &str,
         game: &T,
     ) -> Option<String>;

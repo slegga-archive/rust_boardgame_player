@@ -65,7 +65,7 @@ impl Agentish for PlayerNNDiamondTS {
 
     fn get_move<T: Playable>(
         &self,
-        _moves: &Vec<String>,
+        _moves: &[String],
         player: &str,
         game: &T,
     ) -> Option<String> {
@@ -163,7 +163,7 @@ impl Agentish for PlayerNNDiamondTS {
 
 impl PlayerNNDiamondTS {
     fn has_time_left(&self, move_start: &Instant) -> bool {
-        return Duration::from_secs(self.sec_to_move) >= move_start.elapsed();
+        Duration::from_secs(self.sec_to_move) >= move_start.elapsed()
     }
 
     /// Look for states with highest calculated value, with moves.is_empty() == true
@@ -205,7 +205,7 @@ impl PlayerNNDiamondTS {
             if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
                 is_complete = false;
                 if best_candidate.is_none() {
-                    best_address = address.clone();
+                    best_address = address;
                     best_candidate = Some(cand.clone());
                     best_value = match cand.player == self.opponent_color {
                         // the move choosing player is me
@@ -222,7 +222,7 @@ impl PlayerNNDiamondTS {
                     && best_value
                         < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                 {
-                    best_address = address.clone();
+                    best_address = address;
                     best_candidate = Some(cand.clone());
                     best_value =
                         cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
@@ -248,7 +248,7 @@ impl PlayerNNDiamondTS {
             println!("Values address:{} best_value:{best_value}", address);
             panic!("Candidate is None");
         }
-        return (best_address, best_candidate, is_complete);
+        (best_address, best_candidate, is_complete)
     }
 
     fn explore<T: Playable>(
@@ -328,7 +328,7 @@ impl PlayerNNDiamondTS {
                 &new_leaf_data.clone(),
             );
         }
-        return new_leaf_data;
+        new_leaf_data
     }
 
     /// Look for parent node and update parent score and best_move
@@ -474,7 +474,7 @@ impl PlayerNNDiamondTS {
             score_level: leaf_data.level + 1,
             score_address: 1000000,
         });
-        return states.len() - 1;
+        states.len() - 1
     }
 
     /// loop moves and find best move. Look trough move alternatives
@@ -499,13 +499,13 @@ impl PlayerNNDiamondTS {
             let child_score: usize = states[*adr_child].score;
             let child_score_level: u8 = states[*adr_child].score_level;
 
-            if best_move == "".to_string() {
+            if best_move == *"" {
                 best_move = mov.clone();
                 best_score = child_score;
                 best_score_level = child_score_level;
                 score_address = *adr_child;
             } else if parent.player == states[0].player {
-                if (child_score > best_score || best_score == 0) {
+                if child_score > best_score || best_score == 0 {
                     best_move = mov.clone();
                     best_score = child_score;
                     best_score_level = child_score_level;
@@ -587,7 +587,7 @@ impl PlayerNNDiamondTS {
                 print!(" {:5}", states[i].level);
                 print!(" {:6}", states[i].player);
                 print!(" {:?}", states[i].best_move);
-                println!(""); //  {:?}", states[i].moves);
+                println!(); //  {:?}", states[i].moves);
             }
         }
     }
@@ -598,7 +598,7 @@ impl PlayerNNDiamondTS {
         for gate in 0..=(CELL_SIZE / 2) {
             self.brain.layers[NO_LAYERS - 1][0].operator[gate] = BitOp::TRUE;
         }
-        for gate in (CELL_SIZE + 1)..(CELL_SIZE / 2) {
+        for gate in (CELL_SIZE/2 + 1)..CELL_SIZE {
             self.brain.layers[NO_LAYERS - 1][0].operator[gate] = BitOp::FALSE;
         }
 

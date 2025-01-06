@@ -19,7 +19,7 @@ impl Agentish for PlayerHuman {
     }
     fn get_move<T: Playable + Display>(
         &self,
-        moves: &Vec<String>,
+        moves: &[String],
         _active_player: &str,
         game: &T,
     ) -> Option<String> {

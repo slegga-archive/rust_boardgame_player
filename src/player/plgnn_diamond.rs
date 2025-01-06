@@ -36,7 +36,7 @@ impl Agentish for PlayerNNDiamond {
         self.name.to_string()
     }
 
-    fn get_move<T: Playable>(&self, moves: &Vec<String>, player: &str, game: &T) -> Option<String> {
+    fn get_move<T: Playable>(&self, moves: &[String], player: &str, game: &T) -> Option<String> {
         // temporary until ai is working
         let bit_state = game.get_bit_state(player);
         let current_grade = self.brain.evaluate_bit_state(&bit_state);
