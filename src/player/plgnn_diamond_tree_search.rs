@@ -216,8 +216,7 @@ impl PlayerNNDiamondTS {
                                 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                         }
                     };
-                    // the move choosing player is opponent
-                } else if cand.player == self.opponent_color
+                } else if cand.player == self.opponent_color // the current move choosing player is me
                     && best_value
                         < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                 {
@@ -225,7 +224,7 @@ impl PlayerNNDiamondTS {
                     best_candidate = Some(cand.clone());
                     best_value =
                         cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
-                } else if cand.player == self.me_color
+                } else if cand.player == self.me_color // the current move choosing player is opponent
                     && best_value
                         < (CELL_SIZE - cand.score) as f64
                             - (cand.level as f64 * CELL_SIZE as f64 / exploration)
@@ -360,7 +359,6 @@ impl PlayerNNDiamondTS {
                         debug!("I want to debug");
                     }
                     // Check if score is up or down.
-                    //  } else {
                     if states[adr].player == player {
                         // We are the choosing player
                         if states[adr].best_move.as_ref().unwrap() == &mov {
@@ -450,8 +448,8 @@ impl PlayerNNDiamondTS {
                     }
                     break 'outer;
                 }
-                adr += 1;
             }
+            adr += 1;
         }
     }
 
@@ -616,11 +614,11 @@ impl PlayerNNDiamondTS {
 #[cfg(test)]
 mod tests {
     //use rand::rngs::mock;
-    use super::*;
+    //use super::*;
     use crate::player::plgnn_diamond_tree_search::PlayerNNDiamondTS;
     use crate::player::Agentish;
-    use boardgame_game::game::connect4::connect4::Connect4;
-    use boardgame_game::game::game::Playable;
+    use boardgame_game::game::connect4::Connect4;
+    use boardgame_game::game::Playable;
 
     #[test]
     fn test_if_able_to_block_opponent_from_winning() {
