@@ -25,14 +25,12 @@ pub mod lg_diamond {
     use rand::Rng;
     //use std::char;
     use std::fs::File;
-    
-
 
     use crate::player::brain::brain::*;
     //use GameStatic;
     use std::io::Read;
     use std::io::Write;
-    
+
     use boardgame_game::game::game::*;
     /// Layer representerer et lag med nevroner
     #[derive(Clone, Debug)]
@@ -217,8 +215,8 @@ pub mod lg_diamond {
                                 self.layers[layer_no][cell_no].operator[gate_no] = operator;
                             } else {
                                 return Err(LogicGatesError::InvalidChar {
-                                    char: char,
-                                    line_string: line_string,
+                                    char,
+                                    line_string,
                                     file: self.filepath.clone(),
                                 });
                             }
@@ -243,7 +241,9 @@ pub mod lg_diamond {
                 debug!("File to load: {}", self.filepath);
 
                 if self.filepath == "" {
-                    return Err(LogicGatesError::General { message:"Missing filepath".to_string() });
+                    return Err(LogicGatesError::General {
+                        message: "Missing filepath".to_string(),
+                    });
                 }
                 // truncate file
                 let _ = File::options()
@@ -288,7 +288,7 @@ pub mod lg_diamond {
 
         /// Change random gates. Both type and input addresses.
         /// Do this 1% of gates.
-        pub fn do_mutate(&mut self, max_address: &usize) -> () {
+        pub fn do_mutate(&mut self, max_address: &usize) {
             let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
             let two: u32 = 2;
             let num_tot_cells = two.pow(NO_LAYERS as u32) - 1 - 1;
@@ -348,7 +348,6 @@ pub mod lg_diamond {
                     x => panic!("gen_range out of range: 0..6 {x}"),
                 };
             }
-            ()
         }
     }
 
