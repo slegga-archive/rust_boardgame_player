@@ -2,7 +2,7 @@
 // use crate::player::Agentish;
 
 use crate::player::*;
-use boardgame_game::game::game::*;
+use boardgame_game::game::*;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::io;

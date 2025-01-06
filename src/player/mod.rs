@@ -6,11 +6,11 @@ pub mod plgnn_diamond_tree_search;
 pub mod random;
 
 use crate::player::brain::brain::LogicGatesError;
-use boardgame_game::game::game::GameStatic;
+use boardgame_game::game::GameStatic;
 use std::fmt::Display;
 
 pub trait Agentish {
-    fn get_move<T: boardgame_game::game::game::Playable + Display>(
+    fn get_move<T: boardgame_game::game::Playable + Display>(
         &self,
         moves: &Vec<String>,
         game_player: &str,

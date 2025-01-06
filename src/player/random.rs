@@ -1,5 +1,5 @@
 use crate::player::brain::brain::*;
-use boardgame_game::game::game::Playable;
+use boardgame_game::game::Playable;
 use log::debug;
 use rand::Rng;
 
@@ -8,6 +8,8 @@ pub struct PlayerRandom {
     pub name: String,
     pub name_in_game: String,
 }
+use crate::player::brain::brain::*;
+use boardgame_game::game;
 
 impl crate::player::Agentish for PlayerRandom {
     fn get_name(&self) -> String {
@@ -27,9 +29,10 @@ impl crate::player::Agentish for PlayerRandom {
         // return value
         Some(cmove.clone())
     }
+
     fn get_ready(
         &mut self,
-        _game_static: &boardgame_game::game::game::GameStatic,
+        _game_static: &boardgame_game::game::GameStatic,
         _my_color: &str,
     ) -> Result<(), LogicGatesError> {
         // Trender ikke å gjøre mer

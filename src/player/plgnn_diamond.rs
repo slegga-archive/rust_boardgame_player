@@ -4,8 +4,8 @@
 use crate::player::*;
 //use get_terminal_state_from_bit_state;
 use crate::player::brain::brain::*;
-use crate::player::brain::lg_diamond::lg_diamond::*;
-use boardgame_game::game::game::*;
+use crate::player::brain::lg_diamond::*;
+use boardgame_game::game::*;
 use log::{debug, warn};
 use std::collections::HashMap;
 use Agentish;
@@ -93,6 +93,7 @@ impl Agentish for PlayerNNDiamond {
                             warn!("File not found loading brain. Generate a new one");
                             brain = generate_random_brain(&game_static);
                             brain.save_to_file()?;
+                            ()
                         };
                     }
                     other_error => panic!("Problem creating the file: {other_error:?}"),

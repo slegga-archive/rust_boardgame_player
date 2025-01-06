@@ -2,9 +2,9 @@
 * LOGIC GATE NEURAL NETWORK!
 */
 use crate::player::brain::brain::*;
-use crate::player::brain::lg_diamond::lg_diamond::*;
+use crate::player::brain::lg_diamond::*;
 use crate::player::Agentish;
-use boardgame_game::game::game::*;
+use boardgame_game::game::*;
 
 use log::{debug, info, trace, warn};
 //use rand::Rng;
@@ -155,7 +155,6 @@ impl Agentish for PlayerNNDiamondTS {
                 self.opponent_color = x_value;
             }
         }
-
         Ok(())
     }
 }
@@ -172,44 +171,36 @@ impl PlayerNNDiamondTS {
         let mut best_address = 100000000;
         let mut best_candidate: Option<TSNode> = None;
         let mut is_complete = true;
-        let exploration = 16.0; // low = bredde først, high = dubde først
-        let mut do_continue = false;
-        if states[0].score_level < 9 {
-            let mut address = states[states[0].score_address].score_address;
-            if states[address].is_open == false {
-                if log::log_enabled!(Trace) {
-                    self.dump_state(&states[address]);
-                    self.dump_states(&states);
+        let exploration = 2.0; // low = bredde først, high = dubde først: 1.0= slå meg, 256 lett å slå
+                               // let mut do_continue = false;
 
-                    trace!(
-                        "leaf is not open adr:{} first_adr:{} ",
-                        address,
-                        states[0].score_address
-                    );
-                }
-                loop {
-                    address = states[address].score_address;
-                    if states[address].is_open == true {
-                        break;
-                    }
-                    if address == states[address].score_address {
-                        trace!("Pointer to self {}", address);
-                        do_continue = true;
-                        break;
-                    }
-                }
-            }
-            if !do_continue {
-                return (
-                    states[address].score_address,
-                    Some(states[states[address].score_address].clone()),
-                    false,
+        // Først undersøker om best_move er åpen
+        // Den kan være lukket når videre utforskning av best_move gir samme vurdering som før.
+        // Da vil denne logikken gå videre å finne en mer tilfeldig state å explore.
+        let address = states[states[0].score_address].score_address;
+        if states[address].is_open == false {
+            if log::log_enabled!(Trace) {
+                self.dump_state(&states[address]);
+                self.dump_states(&states);
+
+                trace!(
+                    "leaf is not open adr:{} first_adr:{} ",
+                    address,
+                    states[0].score_address
                 );
             }
+        } else if address != states[address].score_address {
+            //else for: if is_open == false
+            return (
+                states[address].score_address,
+                Some(states[states[address].score_address].clone()),
+                false,
+            );
         }
 
         // Else contiue find the best candidate among all the states
-        for cand in states {
+        for (address, cand) in states.iter().enumerate() {
+            //for cand in states {
             if cand.moves.is_empty() && cand.is_open && cand.moves.is_empty() {
                 is_complete = false;
                 if best_candidate.is_none() {
@@ -225,30 +216,28 @@ impl PlayerNNDiamondTS {
                             (CELL_SIZE - cand.score) as f64
                                 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                         }
-                    }
-                }
-                if cand.player == self.opponent_color // the move choosing player is me
+                    };
+                    // the move choosing player is opponent
+                } else if cand.player == self.opponent_color
                     && best_value
                         < cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                 {
-                    // turn is me
                     best_address = address.clone();
                     best_candidate = Some(cand.clone());
                     best_value =
                         cand.score as f64 - (cand.level as f64 * CELL_SIZE as f64 / exploration);
-                } else if cand.player == self.me_color // the move choosing player is opponent
+                } else if cand.player == self.me_color
                     && best_value
                         < (CELL_SIZE - cand.score) as f64
                             - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                 {
-                    // turn is opoentent
                     best_address = address.clone();
                     best_candidate = Some(cand.clone());
                     best_value = (CELL_SIZE - cand.score) as f64
                         - (cand.level as f64 * CELL_SIZE as f64 / exploration);
                 }
             }
-            address += 1;
+            //address += 1;
         }
 
         if is_complete {
@@ -331,7 +320,8 @@ impl PlayerNNDiamondTS {
             new_leaf_data.score_level = new_leaf_data.level + 1;
             states[*leaf_no] = new_leaf_data.clone();
             debug!(
-                "backpr from explore  {:4}->{:4}:{:3} ::{}",
+                "backpr from explore l:{} {:4}->{:4}:{:3} ::{}",
+                new_leaf_data.level,
                 new_leaf_data.score_address,
                 leaf_no,
                 new_leaf_data.score,
@@ -345,34 +335,6 @@ impl PlayerNNDiamondTS {
             );
         }
         return new_leaf_data;
-    }
-
-    fn add_leaf(
-        &self,
-        states: &mut Vec<TSNode>,
-        &score: &usize,
-        bit_state: &Vec<bool>,
-        leaf_data: &TSNode,
-        is_open: bool,
-    ) -> usize {
-        // alter player turn in tree
-        let new_player = match leaf_data.player == self.me_color {
-            false => self.me_color.clone(),
-            true => self.opponent_color.clone(),
-        };
-
-        states.push(TSNode {
-            moves: HashMap::new(),
-            score: score,
-            best_move: None,
-            bit_state: bit_state.clone(),
-            is_open: is_open,
-            level: leaf_data.level + 1,
-            player: new_player,
-            score_level: leaf_data.level + 1,
-            score_address: 1000000,
-        });
-        return states.len() - 1;
     }
 
     /// Look for parent node and update parent score and best_move
@@ -414,14 +376,20 @@ impl PlayerNNDiamondTS {
                                 states[adr].score = best_score;
                                 states[adr].score_level = best_score_level;
                                 states[adr].score_address = score_address;
+                            } else if states[adr].score == new_leaf_data.score {
+                                // nothing
                             } else {
                                 // no changes. Continue
                                 break 'outer;
                             }
                             //if adr != 0 {
                             debug!(
-                                "backpr from we  {:4}->{:4}:{:3} ::{}",
-                                leaf_no, adr, new_leaf_data.score, new_leaf_data.score_address
+                                "backpr from we  l:{} {:4}->{:4}:{:3} ::{}",
+                                new_leaf_data.level,
+                                leaf_no,
+                                adr,
+                                new_leaf_data.score,
+                                new_leaf_data.score_address
                             );
 
                             self.backpropagate(
@@ -431,11 +399,13 @@ impl PlayerNNDiamondTS {
                                 &states[adr].clone(),
                             );
                             //}
-                        } else if states[adr].score < new_leaf_data.score {
+                        }
+                        /* Aner ikke hva koden under gjør.
+                         else if states[adr].score < new_leaf_data.score {
                             states[adr].score = new_leaf_data.score;
                             states[adr].score_level = new_leaf_data.score_level;
                             states[adr].best_move = Some(mov.clone());
-                        }
+                        }*/
                     } else {
                         // opponent
                         // wish lowest score
@@ -457,8 +427,12 @@ impl PlayerNNDiamondTS {
                             }
                             // if adr != 0 {
                             debug!(
-                                "backpr opponent {:4}->{:4}:{:3} ::{}",
-                                leaf_no, adr, new_leaf_data.score, new_leaf_data.score_address
+                                "backpr opponent l:{} {:4}->{:4}:{:3} ::{}",
+                                new_leaf_data.level,
+                                leaf_no,
+                                adr,
+                                new_leaf_data.score,
+                                new_leaf_data.score_address
                             );
 
                             self.backpropagate(
@@ -468,17 +442,45 @@ impl PlayerNNDiamondTS {
                                 &states[adr].clone(),
                             );
                             //}
-                        } else if states[adr].score > new_leaf_data.score {
+                        }
+                        /*else if states[adr].score > new_leaf_data.score {
                             states[adr].score = new_leaf_data.score;
                             states[adr].best_move = Some(mov.clone());
                             break 'outer;
-                        }
+                        }*/
                     }
                     break 'outer;
                 }
             }
-            adr += 1;
         }
+    }
+
+    fn add_leaf(
+        &self,
+        states: &mut Vec<TSNode>,
+        &score: &usize,
+        bit_state: &Vec<bool>,
+        leaf_data: &TSNode,
+        is_open: bool,
+    ) -> usize {
+        // alter player turn in tree
+        let new_player = match leaf_data.player == self.me_color {
+            false => self.me_color.clone(),
+            true => self.opponent_color.clone(),
+        };
+
+        states.push(TSNode {
+            moves: HashMap::new(),
+            score: score,
+            best_move: None,
+            bit_state: bit_state.clone(),
+            is_open: is_open,
+            level: leaf_data.level + 1,
+            player: new_player,
+            score_level: leaf_data.level + 1,
+            score_address: 1000000,
+        });
+        return states.len() - 1;
     }
 
     /// loop moves and find best move. Look trough move alternatives
