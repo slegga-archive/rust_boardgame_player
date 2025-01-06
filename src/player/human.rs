@@ -2,7 +2,6 @@
 // use crate::player::Agentish;
 
 use crate::player::*;
-use boardgame_game::game::*;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::io;
@@ -51,7 +50,7 @@ impl Agentish for PlayerHuman {
         &mut self,
         _game_static: &GameStatic,
         _me_color: &str,
-    ) -> Result<(), crate::player::brain::brain::LogicGatesError> {
+    ) -> Result<(), crate::player::brain::LogicGatesError> {
         Ok(())
     }
 }

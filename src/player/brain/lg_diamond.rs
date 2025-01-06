@@ -25,7 +25,7 @@ use rand::Rng;
 //use std::char;
 use std::fs::File;
 
-use crate::player::brain::brain::*;
+use crate::player::brain::*;
 use boardgame_game::game::GameStatic;
 //use GameStatic;
 use std::io::Read;

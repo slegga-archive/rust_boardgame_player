@@ -1,4 +1,5 @@
 use crate::player::LogicGatesError;
+use boardgame_game::game::GameStatic;
 use boardgame_game::game::Playable;
 use log::debug;
 use rand::Rng;
@@ -30,7 +31,7 @@ impl crate::player::Agentish for PlayerRandom {
 
     fn get_ready(
         &mut self,
-        _game_static: &boardgame_game::game::GameStatic,
+        _game_static: &GameStatic,
         _my_color: &str,
     ) -> Result<(), LogicGatesError> {
         // Trender ikke å gjøre mer

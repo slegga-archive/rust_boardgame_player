@@ -1,13 +1,16 @@
 /*
 * LOGIC GATE NEURAL NETWORK!
 */
-use crate::player::brain::brain::*;
 use crate::player::brain::lg_diamond::*;
+use crate::player::brain::*;
 use crate::player::Agentish;
-use boardgame_game::game::*;
+//use boardgame_game::game::*;
 
 use log::{debug, info, trace, warn};
 //use rand::Rng;
+use boardgame_game::game::get_terminal_state_from_bit_state;
+use boardgame_game::game::GameStatic;
+use boardgame_game::game::Playable;
 use log::Level::{Info, Trace};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -74,7 +77,7 @@ impl Agentish for PlayerNNDiamondTS {
             moves: HashMap::new(),
             score: current_score,
             best_move: None,
-            bit_state: bit_state,
+            bit_state,
             is_open: true,
             level: 0,
             player: player.to_string(),
@@ -139,7 +142,6 @@ impl Agentish for PlayerNNDiamondTS {
                             warn!("File not found loading brain. Generate a new one");
                             brain = generate_random_brain(&game_static);
                             brain.save_to_file()?;
-                            ()
                         };
                     }
                     other_error => panic!("Problem creating the file: {other_error:?}"),
@@ -295,20 +297,14 @@ impl PlayerNNDiamondTS {
                 new_score = Some(tmp_score);
                 new_leaf_data.best_move = Some(mov.clone());
                 new_leaf_data.score_address = adr;
-            } else {
-                if new_leaf_data.player == perspective {
-                    if tmp_score > new_score.unwrap() {
-                        new_score = Some(tmp_score);
-                        new_leaf_data.best_move = Some(mov.clone());
-                        new_leaf_data.score_address = adr;
-                    }
-                } else {
-                    if tmp_score < new_score.unwrap() {
-                        new_score = Some(tmp_score);
-                        new_leaf_data.best_move = Some(mov.clone());
-                        new_leaf_data.score_address = adr;
-                    }
-                }
+            } else if new_leaf_data.player == perspective && tmp_score > new_score.unwrap() {
+                new_score = Some(tmp_score);
+                new_leaf_data.best_move = Some(mov.clone());
+                new_leaf_data.score_address = adr;
+            } else if tmp_score < new_score.unwrap() {
+                new_score = Some(tmp_score);
+                new_leaf_data.best_move = Some(mov.clone());
+                new_leaf_data.score_address = adr;
             }
         }
         if let Some(new_score) = new_score {
@@ -469,10 +465,10 @@ impl PlayerNNDiamondTS {
 
         states.push(TSNode {
             moves: HashMap::new(),
-            score: score,
+            score,
             best_move: None,
             bit_state: bit_state.clone(),
-            is_open: is_open,
+            is_open,
             level: leaf_data.level + 1,
             player: new_player,
             score_level: leaf_data.level + 1,
@@ -508,20 +504,18 @@ impl PlayerNNDiamondTS {
                 best_score = child_score;
                 best_score_level = child_score_level;
                 score_address = *adr_child;
-            } else if parent.player == states[0].player {
-                if child_score > best_score || best_score == 0 {
-                    best_move = mov.clone();
-                    best_score = child_score;
-                    best_score_level = child_score_level;
-                    score_address = *adr_child;
-                }
-            } else {
-                if child_score < best_score || best_score == 0 {
-                    best_move = mov.clone();
-                    best_score = child_score;
-                    best_score_level = child_score_level;
-                    score_address = *adr_child;
-                }
+            } else if parent.player == states[0].player
+                && (child_score > best_score || best_score == 0)
+            {
+                best_move = mov.clone();
+                best_score = child_score;
+                best_score_level = child_score_level;
+                score_address = *adr_child;
+            } else if child_score < best_score || best_score == 0 {
+                best_move = mov.clone();
+                best_score = child_score;
+                best_score_level = child_score_level;
+                score_address = *adr_child;
             }
             if *adr == 0usize && log::log_enabled!(Info) {
                 print!(
