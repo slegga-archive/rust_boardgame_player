@@ -166,7 +166,6 @@ impl PlayerNNDiamondTS {
 
     /// Look for states with highest calculated value, with moves.is_empty() == true
     fn select_leaf(&self, states: &Vec<TSNode>) -> (usize, Option<TSNode>, bool) {
-        let mut address = 0;
         let mut best_value: f64 = -1000000000.0;
         let mut best_address = 100000000;
         let mut best_candidate: Option<TSNode> = None;
@@ -451,6 +450,7 @@ impl PlayerNNDiamondTS {
                     }
                     break 'outer;
                 }
+                adr += 1;
             }
         }
     }

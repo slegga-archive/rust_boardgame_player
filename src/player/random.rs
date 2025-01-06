@@ -1,4 +1,4 @@
-use crate::player::brain::brain::*;
+use crate::player::LogicGatesError;
 use boardgame_game::game::Playable;
 use log::debug;
 use rand::Rng;
@@ -8,8 +8,6 @@ pub struct PlayerRandom {
     pub name: String,
     pub name_in_game: String,
 }
-use crate::player::brain::brain::*;
-use boardgame_game::game;
 
 impl crate::player::Agentish for PlayerRandom {
     fn get_name(&self) -> String {
