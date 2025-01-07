@@ -12,6 +12,7 @@ use boardgame_game::game::get_terminal_state_from_bit_state;
 use boardgame_game::game::GameStatic;
 use boardgame_game::game::Playable;
 use log::Level::{Info, Trace};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::time::{Duration, Instant};
@@ -29,7 +30,7 @@ struct TSNode {
     score_address: usize,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PlayerNNDiamondTS {
     name: String,
     is_loaded: bool,
@@ -63,12 +64,7 @@ impl Agentish for PlayerNNDiamondTS {
         self.name.to_string()
     }
 
-    fn get_move<T: Playable>(
-        &self,
-        _moves: &[String],
-        player: &str,
-        game: &T,
-    ) -> Option<String> {
+    fn get_move<T: Playable>(&self, _moves: &[String], player: &str, game: &T) -> Option<String> {
         // temporary until ai is working
         let mut states = vec![];
         let bit_state = game.get_bit_state(player);
@@ -293,15 +289,10 @@ impl PlayerNNDiamondTS {
             //panic!("{}", xmove.as_str());
             states[adr].score_address = adr; // after register address.
             move_alternatives.entry(xmove).or_insert(adr);
-            if new_score.is_none() {
-                new_score = Some(tmp_score);
-                new_leaf_data.best_move = Some(mov.clone());
-                new_leaf_data.score_address = adr;
-            } else if new_leaf_data.player == perspective && tmp_score > new_score.unwrap() {
-                new_score = Some(tmp_score);
-                new_leaf_data.best_move = Some(mov.clone());
-                new_leaf_data.score_address = adr;
-            } else if tmp_score < new_score.unwrap() {
+            if new_score.is_none()
+                || (new_leaf_data.player == perspective && tmp_score > new_score.unwrap())
+                || (new_leaf_data.player != perspective && tmp_score < new_score.unwrap())
+            {
                 new_score = Some(tmp_score);
                 new_leaf_data.best_move = Some(mov.clone());
                 new_leaf_data.score_address = adr;
@@ -357,25 +348,26 @@ impl PlayerNNDiamondTS {
                     // Check if score is up or down.
                     if states[adr].player == player {
                         // We are the choosing player
-                        if states[adr].best_move.as_ref().unwrap() == &mov {
-                            if states[adr].score < new_leaf_data.score {
+                        match states[adr].score.cmp(&new_leaf_data.score) {
+                            Ordering::Less => {
                                 states[adr].score = new_leaf_data.score;
                                 states[adr].score_level = new_leaf_data.score_level;
                                 states[adr].score_address = new_leaf_data.score_address;
-                            } else if states[adr].score > new_leaf_data.score {
+                            }
+                            Ordering::Greater => {
                                 let (best_move, best_score, best_score_level, score_address) =
                                     self.get_best_move_and_score(states, &adr);
                                 states[adr].best_move = Some(best_move);
                                 states[adr].score = best_score;
                                 states[adr].score_level = best_score_level;
                                 states[adr].score_address = score_address;
-                            } else if states[adr].score == new_leaf_data.score {
+                            }
+                            Ordering::Equal => {
                                 // nothing
-                            } else {
-                                // no changes. Continue
                                 break 'outer;
                             }
-                            //if adr != 0 {
+                        }
+                        if states[adr].best_move.as_ref().unwrap() == &mov {
                             debug!(
                                 "backpr from we  l:{} {:4}->{:4}:{:3} ::{}",
                                 new_leaf_data.level,
@@ -393,32 +385,30 @@ impl PlayerNNDiamondTS {
                             );
                             //}
                         }
-                        /* Aner ikke hva koden under gjør.
-                         else if states[adr].score < new_leaf_data.score {
-                            states[adr].score = new_leaf_data.score;
-                            states[adr].score_level = new_leaf_data.score_level;
-                            states[adr].best_move = Some(mov.clone());
-                        }*/
                     } else {
                         // opponent
                         // wish lowest score
                         if states[adr].best_move == Some(mov.clone()) {
-                            if states[adr].score > new_leaf_data.score {
-                                states[adr].score = new_leaf_data.score;
-                                states[adr].score_level = new_leaf_data.score_level;
-                                states[adr].score_address = new_leaf_data.score_address;
-                            } else if states[adr].score < new_leaf_data.score {
-                                let (best_move, best_score, best_score_level, score_address) =
-                                    self.get_best_move_and_score(states, &adr);
-                                states[adr].best_move = Some(best_move);
-                                states[adr].score = best_score;
-                                states[adr].score_level = best_score_level;
-                                states[adr].score_address = score_address;
-                            } else {
-                                // no changes. Continue
-                                break 'outer;
+                            match states[adr].score.cmp(&new_leaf_data.score) {
+                                Ordering::Greater => {
+                                    states[adr].score = new_leaf_data.score;
+                                    states[adr].score_level = new_leaf_data.score_level;
+                                    states[adr].score_address = new_leaf_data.score_address;
+                                }
+                                Ordering::Less => {
+                                    let (best_move, best_score, best_score_level, score_address) =
+                                        self.get_best_move_and_score(states, &adr);
+                                    states[adr].best_move = Some(best_move);
+                                    states[adr].score = best_score;
+                                    states[adr].score_level = best_score_level;
+                                    states[adr].score_address = score_address;
+                                }
+                                Ordering::Equal => {
+                                    // nothing
+                                    break 'outer;
+                                }
                             }
-                            // if adr != 0 {
+
                             debug!(
                                 "backpr opponent l:{} {:4}->{:4}:{:3} ::{}",
                                 new_leaf_data.level,
@@ -434,13 +424,7 @@ impl PlayerNNDiamondTS {
                                 &adr,
                                 &states[adr].clone(),
                             );
-                            //}
                         }
-                        /*else if states[adr].score > new_leaf_data.score {
-                            states[adr].score = new_leaf_data.score;
-                            states[adr].best_move = Some(mov.clone());
-                            break 'outer;
-                        }*/
                     }
                     break 'outer;
                 }
@@ -511,13 +495,11 @@ impl PlayerNNDiamondTS {
                     best_score_level = child_score_level;
                     score_address = *adr_child;
                 }
-            } else {
-                if child_score < best_score || best_score == 0 {
-                    best_move = mov.clone();
-                    best_score = child_score;
-                    best_score_level = child_score_level;
-                    score_address = *adr_child;
-                }
+            } else if child_score < best_score || best_score == 0 {
+                best_move = mov.clone();
+                best_score = child_score;
+                best_score_level = child_score_level;
+                score_address = *adr_child;
             }
             if *adr == 0usize && log::log_enabled!(Info) {
                 print!(
@@ -531,19 +513,13 @@ impl PlayerNNDiamondTS {
         if *adr == 0usize && log::log_enabled!(Info) {
             println!(":{}---", states.len());
         }
-        if best_move == "".to_string() {
+        if best_move.is_empty() {
             self.dump_states(states);
             panic!("No best move for: {adr}\n{:#?}", states[*adr]);
         }
         (best_move, best_score, best_score_level, score_address)
     }
 
-    ///Place to set up logging and debug info
-    /*
-    fn game_finished_event(&self) -> () {
-        debug!("dump player  {:?}", self);
-        // debug info
-    }*/
     fn dump_state(&self, state: &TSNode) {
         if log::log_enabled!(Info) {
             println!("score,score_level,score_address, is_open,level, player, best_move");
@@ -556,7 +532,7 @@ impl PlayerNNDiamondTS {
             print!(" {:5}", state.level);
             print!(" {:8}", state.player);
             print!(" {:?}", state.best_move);
-            println!(""); //  {:?}", states[i].moves);
+            println!(); //  {:?}", states[i].moves);
         }
     }
 
@@ -578,15 +554,15 @@ impl PlayerNNDiamondTS {
                 end = 10;
             }
 
-            for i in 0..end {
+            for (i, state) in states.iter().enumerate().take(end) {
                 print!("{:7}", i);
-                print!(" {:5}", states[i].score);
-                print!(" {:11}", states[i].score_level);
-                print!(" {:13}", states[i].score_address);
-                print!(" {:7}", states[i].is_open);
-                print!(" {:5}", states[i].level);
-                print!(" {:6}", states[i].player);
-                print!(" {:?}", states[i].best_move);
+                print!(" {:5}", state.score);
+                print!(" {:11}", state.score_level);
+                print!(" {:13}", state.score_address);
+                print!(" {:7}", state.is_open);
+                print!(" {:5}", state.level);
+                print!(" {:6}", state.player);
+                print!(" {:?}", state.best_move);
                 println!(); //  {:?}", states[i].moves);
             }
         }
@@ -598,7 +574,7 @@ impl PlayerNNDiamondTS {
         for gate in 0..=(CELL_SIZE / 2) {
             self.brain.layers[NO_LAYERS - 1][0].operator[gate] = BitOp::TRUE;
         }
-        for gate in (CELL_SIZE/2 + 1)..CELL_SIZE {
+        for gate in (CELL_SIZE / 2 + 1)..CELL_SIZE {
             self.brain.layers[NO_LAYERS - 1][0].operator[gate] = BitOp::FALSE;
         }
 
@@ -610,7 +586,7 @@ impl PlayerNNDiamondTS {
 #[cfg(test)]
 mod tests {
     //use rand::rngs::mock;
-    //use super::*;
+    // use super::*;
     use crate::player::plgnn_diamond_tree_search::PlayerNNDiamondTS;
     use crate::player::Agentish;
     use boardgame_game::game::connect4::Connect4;

@@ -45,12 +45,11 @@ impl Default for BrainDiamond {
         for l in 0..NO_LAYERS {
             layers.push(get_default_cell_layer(l.try_into().unwrap()));
         }
-        let retur = BrainDiamond {
+        BrainDiamond {
             game_name: "Not set".to_string(),
             filepath: "".to_string(),
             layers: layers.try_into().unwrap(),
-        };
-        return retur;
+        }
     }
 }
 impl BrainDiamond {
@@ -153,7 +152,7 @@ impl BrainDiamond {
     }
 
     pub fn from_file(&mut self) -> Result<(), LogicGatesError> {
-        if self.filepath == "" {
+        if self.filepath.is_empty() {
             self.filepath = format!(
                 "data/{}-lgnndiamond-{}-{}.txt",
                 self.game_name, NO_LAYERS, CELL_SIZE
@@ -175,7 +174,7 @@ impl BrainDiamond {
             if line_string.starts_with("Layer:") {
                 gate_no = 0;
                 cell_no = 0;
-                let no_str = line.rsplit_once(" ").unwrap_or_else(|| ("", "")).1;
+                let no_str = line.rsplit_once(" ").unwrap_or(("", "")).1;
                 layer_no = no_str
                     .to_string()
                     .parse::<usize>()
@@ -190,19 +189,16 @@ impl BrainDiamond {
                             let mut gate_iter = line_string.split(",");
                             let adr_a: usize = gate_iter
                                 .next()
-                                .unwrap_or_else(|| "")
+                                .unwrap_or("")
                                 .parse::<usize>()
                                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
                             let adr_b: usize = gate_iter
                                 .next()
-                                .unwrap_or_else(|| "")
+                                .unwrap_or("")
                                 .parse::<usize>()
                                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-                            let operator = gate_iter
-                                .next()
-                                .unwrap_or_else(|| "XOR")
-                                .parse::<BitOp>()
-                                .unwrap(); // forstår ikke hvordan bli kvitt unwrap her. (Fikk feil med expect også.)
+                            let operator =
+                                gate_iter.next().unwrap_or("XOR").parse::<BitOp>().unwrap(); // forstår ikke hvordan bli kvitt unwrap her. (Fikk feil med expect også.)
 
                             self.layers[layer_no][cell_no].address_a[gate_no] = adr_a;
                             self.layers[layer_no][cell_no].address_b[gate_no] = adr_b;
@@ -220,21 +216,21 @@ impl BrainDiamond {
                     }
                 }
                 trace!("Handle {layer_no}:{gate_no} for {line_string}");
-                gate_no = gate_no + 1;
+                gate_no += 1;
                 if gate_no >= CELL_SIZE {
                     gate_no -= CELL_SIZE;
                     cell_no += 1;
                 }
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     pub fn save_to_file(&self) -> Result<(), LogicGatesError> {
         {
             debug!("File to load: {}", self.filepath);
 
-            if self.filepath == "" {
+            if self.filepath.is_empty() {
                 return Err(LogicGatesError::General {
                     message: "Missing filepath".to_string(),
                 });
@@ -252,7 +248,6 @@ impl BrainDiamond {
         }
         let mut f = File::options()
             .create(true)
-            .write(true)
             .append(true)
             .open(&self.filepath)?;
         debug!("INSIDE SAVE_TO_FILE");
@@ -294,7 +289,7 @@ impl BrainDiamond {
             let mut layer = NO_LAYERS - 1;
             for j in 0..NO_LAYERS as u32 {
                 let cells_in_layer = usize::pow(2, NO_LAYERS as u32 - j - 1);
-                if cell >= cells_in_layer as usize {
+                if cell >= cells_in_layer {
                     layer -= 1;
                     cell -= cells_in_layer;
                 }
@@ -346,14 +341,6 @@ impl BrainDiamond {
 }
 
 /// Layer representerer et lag med nevroner
-/*    #[derive(Copy, Clone, Debug)]
-pub struct Layer {
-    address_a: [usize; CELL_SIZE],
-    address_b: [usize; CELL_SIZE],
-    operator: [BitOp; CELL_SIZE],
-}*/
-/// Layer representerer et lag med nevroner
-
 /// "cell layer" En "cell" er 256 gates.
 /// "layer" er 2**(Layers - layer -1) antall "cell"
 /// "Layer" i denne sammenheng er en Vec
