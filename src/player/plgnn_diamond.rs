@@ -44,21 +44,18 @@ impl Agentish for PlayerNNDiamond {
         debug!("current state: {:?}", bit_state);
         for mov in moves.iter() {
             // let bit_state_clone = bit_state.clone();
-            let tmp_state = game.get_bit_state_from_bit_state_and_move(&player, &bit_state, &mov);
+            let tmp_state = game.get_bit_state_from_bit_state_and_move(player, &bit_state, mov);
             let mut tmp_grade = self.brain.evaluate_bit_state(&tmp_state);
             //debug!("state: {:?}", tmp_state);
             // if temp game is terminal set hardcoded values
-            match get_terminal_state_from_bit_state(&tmp_state) {
-                Some(x) => {
-                    debug!("GAME IS Termialstate: {:?} \n{:?}", x, tmp_state);
+            if let Some(x) = get_terminal_state_from_bit_state(&tmp_state) {
+                debug!("GAME IS Termialstate: {:?} \n{:?}", x, tmp_state);
 
-                    tmp_grade = match x {
-                        TerminalState::Me => CELL_SIZE,
-                        TerminalState::Opponent => 0,
-                        TerminalState::Draw => CELL_SIZE / 2,
-                    }
+                tmp_grade = match x {
+                    TerminalState::Me => CELL_SIZE,
+                    TerminalState::Opponent => 0,
+                    TerminalState::Draw => CELL_SIZE / 2,
                 }
-                None => {}
             }
             move_alternatives
                 .entry(mov.to_string())
@@ -66,13 +63,13 @@ impl Agentish for PlayerNNDiamond {
         }
         let cmove = move_alternatives
             .iter()
-            .max_by(|a, b| a.1.cmp(&b.1))
+            .max_by(|a, b| a.1.cmp(b.1))
             .map_or("MISSING MOVE ALTERNATIVES", |(k, _v)| k);
 
         debug!("state:{}.  ", current_grade);
         debug!("alternatives: {:?}", move_alternatives);
         debug!("I({}) move {} ", self.name, cmove);
-        return Some(cmove.to_string());
+        Some(cmove.to_string())
     }
 
     fn get_ready(
@@ -83,23 +80,23 @@ impl Agentish for PlayerNNDiamond {
         // _me_color is ignored. Expect always to only think one move a head.
 
         if !self.is_loaded {
-            let mut brain = BrainDiamond::default();
-            brain.game_name = game_static.name.clone();
-            //todo!("Look for file or generate a random brain");
+            let mut brain = BrainDiamond {
+                game_name: game_static.name.clone(),
+                ..Default::default()
+            };
             match brain.from_file() {
                 Ok(_value) => (),
                 Err(e) => match e {
                     LogicGatesError::Io { source: x } => {
                         if x.kind() == std::io::ErrorKind::NotFound {
                             warn!("File not found loading brain. Generate a new one");
-                            brain = generate_random_brain(&game_static);
+                            brain = generate_random_brain(game_static);
                             brain.save_to_file()?;
                         };
                     }
                     other_error => panic!("Problem creating the file: {other_error:?}"),
                 },
             }
-            // warn!("BrainDiamond is {:?}", brain);
             self.brain = brain;
         }
         Ok(())

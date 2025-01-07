@@ -104,7 +104,7 @@ impl Agentish for PlayerNNDiamondTS {
 
         let (cmove, cscore, score_level, _score_address) =
             self.get_best_move_and_score(&states, &0);
-        if cmove == "".to_string() {
+        if cmove.is_empty() {
             panic!("Did not find a move for root. {:#?}", states[0]);
         }
         self.dump_states(&states);
@@ -118,7 +118,7 @@ impl Agentish for PlayerNNDiamondTS {
             //    states[0]
         );
 
-        return Some(cmove.to_string());
+        Some(cmove.to_string())
     }
 
     fn get_ready(
@@ -127,7 +127,10 @@ impl Agentish for PlayerNNDiamondTS {
         me_color: &str,
     ) -> Result<(), LogicGatesError> {
         if !self.is_loaded {
-            let mut brain = BrainDiamond::default();
+            let mut brain = BrainDiamond {
+                game_name: game_static.name.clone(),
+                ..Default::default()
+            };
             brain.game_name = game_static.name.clone();
             //todo!("Look for file or generate a random brain");
             match brain.from_file() {
@@ -136,7 +139,7 @@ impl Agentish for PlayerNNDiamondTS {
                     LogicGatesError::Io { source: x } => {
                         if x.kind() == std::io::ErrorKind::NotFound {
                             warn!("File not found loading brain. Generate a new one");
-                            brain = generate_random_brain(&game_static);
+                            brain = generate_random_brain(game_static);
                             brain.save_to_file()?;
                         };
                     }
@@ -175,10 +178,10 @@ impl PlayerNNDiamondTS {
         // Den kan være lukket når videre utforskning av best_move gir samme vurdering som før.
         // Da vil denne logikken gå videre å finne en mer tilfeldig state å explore.
         let address = states[states[0].score_address].score_address;
-        if states[address].is_open == false {
+        if !states[address].is_open {
             if log::log_enabled!(Trace) {
                 self.dump_state(&states[address]);
-                self.dump_states(&states);
+                self.dump_states(states);
 
                 trace!(
                     "leaf is not open adr:{} first_adr:{} ",
@@ -227,7 +230,7 @@ impl PlayerNNDiamondTS {
                         < (CELL_SIZE - cand.score) as f64
                             - (cand.level as f64 * CELL_SIZE as f64 / exploration)
                 {
-                    best_address = address.clone();
+                    best_address = address;
                     best_candidate = Some(cand.clone());
                     best_value = (CELL_SIZE - cand.score) as f64
                         - (cand.level as f64 * CELL_SIZE as f64 / exploration);
@@ -240,7 +243,7 @@ impl PlayerNNDiamondTS {
             debug!("Is complete. Number of states {}", states.len());
             self.dump_states(states);
         }
-        if best_candidate.is_none() && is_complete == false {
+        if best_candidate.is_none() && !is_complete {
             println!("Values address:{} best_value:{best_value}", address);
             panic!("Candidate is None");
         }
@@ -280,12 +283,9 @@ impl PlayerNNDiamondTS {
             );
             // println!("{}", xmove.as_str());
             let tmp_score = self.brain.evaluate_bit_state(&tmp_state);
-            let is_open = match get_terminal_state_from_bit_state(&tmp_state) {
-                None => true,
-                _ => false,
-            };
+            let is_open = get_terminal_state_from_bit_state(&tmp_state).is_none();
 
-            let adr = self.add_leaf(states, &tmp_score, &tmp_state, &leaf_data, is_open);
+            let adr = self.add_leaf(states, &tmp_score, &tmp_state, leaf_data, is_open);
             //panic!("{}", xmove.as_str());
             states[adr].score_address = adr; // after register address.
             move_alternatives.entry(xmove).or_insert(adr);

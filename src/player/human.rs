@@ -34,7 +34,7 @@ impl Agentish for PlayerHuman {
                 .read_line(&mut line)
                 .expect("Problemer med å lese fra shell");
             let line_s = line.trim_end();
-            if moves.iter().find(|&x| x.eq(&line_s)) != None {
+            if moves.iter().any(|x| x.eq(&line_s)) {
                 return Some(line_s.to_string());
             }
             println!(

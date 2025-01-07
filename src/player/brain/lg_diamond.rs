@@ -357,8 +357,8 @@ pub fn get_default_cell_layer(layer: u32) -> Vec<Cell> {
         }
     }
     let default_cell: Cell = Cell {
-        address_a: address_default.clone(),
-        address_b: address_default.clone(),
+        address_a: address_default,
+        address_b: address_default,
         operator: [BitOp::AND; CELL_SIZE],
     };
 
@@ -371,14 +371,14 @@ pub fn get_default_cell_layer(layer: u32) -> Vec<Cell> {
 fn generate_random_cell_layer(max_address: &usize, layer: u32) -> Vec<Cell> {
     let mut retur: Vec<Cell> = get_default_cell_layer(layer);
     let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
-    for ri in 0..retur.len() {
+    for cell_layer in &mut retur {
         for i in 0..CELL_SIZE {
             // layer 0 har tilfeldige adresser for a og b, mens resten er satt.
             match layer {
                 0 => {
-                    retur[ri].address_a[i] = rng.gen_range(0..*max_address);
-                    retur[ri].address_b[i] = rng.gen_range(0..*max_address);
-                    retur[ri].operator[i] = match rng.gen_range(1..15) {
+                    cell_layer.address_a[i] = rng.gen_range(0..*max_address);
+                    cell_layer.address_b[i] = rng.gen_range(0..*max_address);
+                    cell_layer.operator[i] = match rng.gen_range(1..15) {
                         // rand 0.8
                         0 => BitOp::FALSE, //         0 False 0                       0  0  0  0
                         1 => BitOp::AND,   // 1 A ∧ B A · B                   0  0  0  1
@@ -400,9 +400,9 @@ fn generate_random_cell_layer(max_address: &usize, layer: u32) -> Vec<Cell> {
                     };
                 }
                 _ => {
-                    retur[ri].address_a[i] = i;
-                    retur[ri].address_b[i] = i;
-                    retur[ri].operator[i] = match rng.gen_range(1..15) {
+                    cell_layer.address_a[i] = i;
+                    cell_layer.address_b[i] = i;
+                    cell_layer.operator[i] = match rng.gen_range(1..15) {
                         // rand 0.8
                         0 => BitOp::FALSE, //         0 False 0                       0  0  0  0
                         1 => BitOp::AND,   // 1 A ∧ B A · B                   0  0  0  1
@@ -427,7 +427,8 @@ fn generate_random_cell_layer(max_address: &usize, layer: u32) -> Vec<Cell> {
         }
     }
     //println!("{:?}", retur);
-    return retur;
+
+    retur
 }
 pub fn generate_random_brain(game: &GameStatic) -> BrainDiamond {
     //game: crate::game::game::GameStatic
@@ -452,5 +453,5 @@ pub fn generate_random_brain(game: &GameStatic) -> BrainDiamond {
         }
     }
 
-    return brain;
+    brain
 }
