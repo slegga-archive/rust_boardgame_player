@@ -166,7 +166,7 @@ impl PlayerNNDiamondTS {
     }
 
     /// Look for states with highest calculated value, with moves.is_empty() == true
-    fn select_leaf(&self, states: &Vec<TSNode>) -> (usize, Option<TSNode>, bool) {
+    fn select_leaf(&self, states: &[TSNode]) -> (usize, Option<TSNode>, bool) {
         let mut best_value: f64 = -1000000000.0;
         let mut best_address = 100000000;
         let mut best_candidate: Option<TSNode> = None;
@@ -437,7 +437,7 @@ impl PlayerNNDiamondTS {
         &self,
         states: &mut Vec<TSNode>,
         &score: &usize,
-        bit_state: &Vec<bool>,
+        bit_state: &[bool],
         leaf_data: &TSNode,
         is_open: bool,
     ) -> usize {
@@ -451,7 +451,7 @@ impl PlayerNNDiamondTS {
             moves: HashMap::new(),
             score,
             best_move: None,
-            bit_state: bit_state.clone(),
+            bit_state: bit_state.to_owned(),
             is_open,
             level: leaf_data.level + 1,
             player: new_player,
@@ -464,7 +464,7 @@ impl PlayerNNDiamondTS {
     /// loop moves and find best move. Look trough move alternatives
     fn get_best_move_and_score(
         &self,
-        states: &Vec<TSNode>,
+        states: &[TSNode],
         adr: &usize,
     ) -> (String, usize, u8, usize) {
         let parent = states[*adr].clone();
@@ -536,7 +536,7 @@ impl PlayerNNDiamondTS {
         }
     }
 
-    fn dump_states(&self, states: &Vec<TSNode>) {
+    fn dump_states(&self, states: &[TSNode]) {
         /*struct TSNode {
             moves: HashMap<String, usize>,
             score: usize,
