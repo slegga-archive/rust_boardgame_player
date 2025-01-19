@@ -33,6 +33,7 @@ impl crate::player::Agentish for PlayerRandom {
         &mut self,
         _game_static: &GameStatic,
         _my_color: &str,
+        _sec_to_move: u64,
     ) -> Result<(), LogicGatesError> {
         // Trender ikke å gjøre mer
         Ok(())

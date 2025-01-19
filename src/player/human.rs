@@ -50,6 +50,7 @@ impl Agentish for PlayerHuman {
         &mut self,
         _game_static: &GameStatic,
         _me_color: &str,
+        _sec_to_move: u64,
     ) -> Result<(), crate::player::brain::LogicGatesError> {
         Ok(())
     }

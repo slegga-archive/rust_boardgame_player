@@ -4,17 +4,21 @@
 use crate::player::brain::lg_diamond::*;
 use crate::player::brain::*;
 use crate::player::Agentish;
+use crate::player::Brainy;
 //use boardgame_game::game::*;
 
+use boardgame_game::game::get_active_player_from_bit_state;
 use log::{debug, info, trace, warn};
 //use rand::Rng;
 use boardgame_game::game::get_terminal_state_from_bit_state;
 use boardgame_game::game::GameStatic;
 use boardgame_game::game::Playable;
+use boardgame_game::game::Game;
 use log::Level::{Info, Trace};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Debug;
+// use std::intrinsics::mir::place;
 use std::time::{Duration, Instant};
 
 #[derive(Clone, Debug)]
@@ -32,12 +36,12 @@ struct TSNode {
 
 #[derive(Clone, Debug)]
 pub struct PlayerNNDiamondTS {
-    name: String,
-    is_loaded: bool,
-    brain: BrainDiamond,
-    sec_to_move: u64,
-    me_color: String,
-    opponent_color: String,
+    pub name: String,
+    pub is_loaded: bool,
+    pub brain: BrainDiamond,
+    pub sec_to_move: u64,
+    pub me_color: String,
+    pub opponent_color: String,
 }
 
 impl Default for PlayerNNDiamondTS {
@@ -125,7 +129,9 @@ impl Agentish for PlayerNNDiamondTS {
         &mut self,
         game_static: &GameStatic,
         me_color: &str,
+        sec_to_move: u64,
     ) -> Result<(), LogicGatesError> {
+        self.sec_to_move = sec_to_move;
         if !self.is_loaded {
             let mut brain = BrainDiamond {
                 game_name: game_static.name.clone(),
@@ -157,6 +163,69 @@ impl Agentish for PlayerNNDiamondTS {
             }
         }
         Ok(())
+    }
+}
+
+impl Brainy for PlayerNNDiamondTS {
+    fn evaluate_bit_state(&self, game: &Game, bit_state: &Vec<bool>) -> usize {
+
+        let mut states = vec![];
+
+        let game_static = game.get_game_static();
+        let player = get_active_player_from_bit_state(&game_static, bit_state);
+        let bit_state = game.get_bit_state(player.as_str());
+        let current_score = self.brain.evaluate_bit_state(&bit_state);
+        states.push(TSNode {
+            moves: HashMap::new(),
+            score: current_score,
+            best_move: None,
+            bit_state: bit_state.to_vec(),
+            is_open: true,
+            level: 0,
+            player: get_active_player_from_bit_state(&game_static, &bit_state),
+            score_level: 0,
+            score_address: 0,
+        });
+        let move_start = Instant::now();
+        let player = states[0].player.clone();
+        let mut must_rounds: i32 = 56; // to debug way not right scoring
+        while self.has_time_left(&move_start) || must_rounds > 0 {
+            // selection
+            // get best leaf chose. Variable to set penalty for
+            let (leaf_no, leaf_data, is_complete) = self.select_leaf(&states); // return address to most interesting leaf and data.
+            if is_complete {
+                info!("is_complete. Exit.");
+                break;
+                //} else if leaf_no == 7 {
+                //    println!("Want to brake");
+            }
+            let new_leaf_data =
+                self.explore(&mut states, &player, &leaf_no, &leaf_data.unwrap(), game);
+            self.backpropagate(&mut states, &player, &leaf_no, &new_leaf_data);
+            must_rounds -= 1;
+        }
+        let (cmove, cscore, score_level, _score_address) =
+            self.get_best_move_and_score(&states, &0);
+        if cmove.is_empty() {
+            panic!("Did not find a move for root. {:#?}", states[0]);
+        }
+        self.dump_states(&states);
+        info!(
+            "I({}) move {} with score: {} {:.1} level:{} % ",
+            self.name,
+            cmove,
+            cscore,
+            cscore as f32 * 100.0 / CELL_SIZE as f32,
+            score_level,
+            //    states[0]
+        );
+
+        cscore
+    }
+
+    type MyBrain = BrainDiamond ;
+    fn get_brain(&self) -> Self::MyBrain {
+        self.brain.clone()
     }
 }
 

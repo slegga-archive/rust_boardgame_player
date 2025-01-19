@@ -6,6 +6,9 @@ use crate::player::*;
 use crate::player::brain::lg_diamond::*;
 use crate::player::brain::*;
 use boardgame_game::game::get_terminal_state_from_bit_state;
+//use boardgame_game::game::get_active_player_from_bit_state;
+use boardgame_game::game::Game;
+
 use boardgame_game::game::TerminalState;
 use log::{debug, warn};
 use std::collections::HashMap;
@@ -76,6 +79,7 @@ impl Agentish for PlayerNNDiamond {
         &mut self,
         game_static: &GameStatic,
         _me_color: &str,
+        _sec_to_move: u64,
     ) -> Result<(), LogicGatesError> {
         // _me_color is ignored. Expect always to only think one move a head.
 
@@ -100,5 +104,16 @@ impl Agentish for PlayerNNDiamond {
             self.brain = brain;
         }
         Ok(())
+    }
+}
+
+impl Brainy for PlayerNNDiamond {
+    type MyBrain = BrainDiamond;
+    fn evaluate_bit_state(&self,_game: &Game, bit_state: &Vec<bool>) -> usize {
+        self.brain.evaluate_bit_state(bit_state)
+    }
+
+    fn get_brain(&self) -> BrainDiamond {
+        self.brain.clone()
     }
 }

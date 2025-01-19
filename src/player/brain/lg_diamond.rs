@@ -338,6 +338,88 @@ impl BrainDiamond {
             };
         }
     }
+
+
+    /// Returnerer bit_state før angitt level. Så level 0 = game_bit_state, NO_LAYERS = siste resultat som er grunnlaget for summeringen summering.
+    pub fn get_gate_result_for_level(&self,game_bit_state: Vec<bool>, level: u8)->Vec<bool> {
+        //todo!("get_gate_result_for_level. Returner alle bit før angitt level");
+        //let mut current_bit_state = vec![false, true, is_current_active_player];
+        let mut current_bit_state = game_bit_state.clone();
+        // println!("in:{:?}", current_state);
+        let two: usize = 2;
+
+        // If game is terminated, return hardcoded values
+        // bit 4,5,6, is for terminal states. So evalueate them. If not set continiue
+
+
+        for layer_no in 0..level as usize {
+            let layer: &Vec<Cell> = &self.layers[layer_no];
+            let cells: usize = two.pow((NO_LAYERS - layer_no - 1) as u32);
+            let mut next_bit_state: Vec<bool> = vec![true; CELL_SIZE * cells];
+            /*println!(
+                "evaluate_bit_state: {} {} current_bit_state.len {}",
+                layer_no,
+                cells,
+                current_bit_state.len()
+            );*/
+            if layer_no == 0 {
+                for cell in 0..cells {
+                    for gate in 0..CELL_SIZE {
+                        let bit_a = current_bit_state[layer[cell].address_a[gate]];
+                        let bit_b = current_bit_state[layer[cell].address_b[gate]];
+                        next_bit_state[gate] = match layer[cell].operator[gate] {
+                            BitOp::FALSE => false, //         0 False 0                       0  0  0  0
+                            BitOp::AND => bit_a & bit_b, // 1 A ∧ B A · B                   0  0  0  1
+                            BitOp::ANDANB => bit_a & !bit_b, // 2 ¬(A ⇒ B) A − AB               0  0  1  0
+                            BitOp::A => bit_a, // 3 A A                           0  0  1  1
+                            BitOp::ANDNAB => !bit_a & bit_b, // 4 ¬(A ⇐ B) B − AB               0  1  0  0
+                            BitOp::B => bit_b, // 5 B B                           0  1  0  1
+                            BitOp::XOR => bit_a ^ bit_b, // 6 A ⊕ B A + B − 2AB             0  1  1  0
+                            BitOp::OR => bit_a | bit_b, // 7 A ∨ B A + B − AB              0  1  1  1
+                            BitOp::NOR => !(bit_a | bit_b), // 8 ¬(A ∨ B) 1 − (A + B − AB)     1  0  0  0
+                            BitOp::NXOR => !(bit_a ^ bit_b), // 9 ¬(A ⊕ B) 1 − (A + B − 2AB)    1  0  0  1
+                            BitOp::NB => !bit_b, // 10 ¬B 1 − B                     1  0  1  0
+                            BitOp::ORANB => bit_a | !bit_b, //11 A ⇐ B 1 − B + AB             1  0  1  1
+                            BitOp::NA => !bit_a, //12 ¬A 1 − A                     1  1  0  0
+                            BitOp::ORNAB => !bit_a | bit_b, //13 A ⇒ B 1 − A + AB             1  1  0  1
+                            BitOp::NAND => !(bit_a & bit_b), //14 ¬(A ∧ B) 1 − AB              1  1  1  0
+                            BitOp::TRUE => true, // 15 True 1                       1  1  1  1
+                        };
+                    }
+                }
+            } else {
+                for cell in 0..cells {
+                    for gate in 0..CELL_SIZE {
+                        let bit_a = current_bit_state[cell * 2 * CELL_SIZE + gate];
+                        let bit_b = current_bit_state[(cell * 2 + 1) * CELL_SIZE + gate];
+                        next_bit_state[cell * CELL_SIZE + gate] = match layer[cell].operator[gate] {
+                            BitOp::FALSE => false, //         0 False 0                       0  0  0  0
+                            BitOp::AND => bit_a & bit_b, // 1 A ∧ B A · B                   0  0  0  1
+                            BitOp::ANDANB => bit_a & !bit_b, // 2 ¬(A ⇒ B) A − AB               0  0  1  0
+                            BitOp::A => bit_a, // 3 A A                           0  0  1  1
+                            BitOp::ANDNAB => !bit_a & bit_b, // 4 ¬(A ⇐ B) B − AB               0  1  0  0
+                            BitOp::B => bit_b, // 5 B B                           0  1  0  1
+                            BitOp::XOR => bit_a ^ bit_b, // 6 A ⊕ B A + B − 2AB             0  1  1  0
+                            BitOp::OR => bit_a | bit_b, // 7 A ∨ B A + B − AB              0  1  1  1
+                            BitOp::NOR => !(bit_a | bit_b), // 8 ¬(A ∨ B) 1 − (A + B − AB)     1  0  0  0
+                            BitOp::NXOR => !(bit_a ^ bit_b), // 9 ¬(A ⊕ B) 1 − (A + B − 2AB)    1  0  0  1
+                            BitOp::NB => !bit_b, // 10 ¬B 1 − B                     1  0  1  0
+                            BitOp::ORANB => bit_a | !bit_b, //11 A ⇐ B 1 − B + AB             1  0  1  1
+                            BitOp::NA => !bit_a, //12 ¬A 1 − A                     1  1  0  0
+                            BitOp::ORNAB => !bit_a | bit_b, //13 A ⇒ B 1 − A + AB             1  1  0  1
+                            BitOp::NAND => !(bit_a & bit_b), //14 ¬(A ∧ B) 1 − AB              1  1  1  0
+                            BitOp::TRUE => true, // 15 True 1                       1  1  1  1
+                        };
+                    }
+                }
+            }
+            // println!("{}: {:?}", layer_no, next_state);
+            current_bit_state = next_bit_state;
+        }
+        // return number of true bits
+        current_bit_state
+
+    }
 }
 
 /// Layer representerer et lag med nevroner
